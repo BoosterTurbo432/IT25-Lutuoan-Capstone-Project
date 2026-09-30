@@ -1,7 +1,7 @@
 # IT25 Database Connectivity Prototype
 
 ## Project Title
-Speedrunner
+Lutuoan
 
 ## Group Members
 1. Dion Gaelle Subion
@@ -11,7 +11,7 @@ Speedrunner
 5. Luke Acosta
 
 ## Description
-Speedrunner is a simple Unity 2D game where the player goes from Point A to Point B in the fastest time. The game saves the player time,game title, result, and date/time to Firebase Realtime Database. The game can also retrieve saved time and display them as a leaderboard.
+Lutuoan is a simple Unity 2D game where the player leans how to cook ingame and following the instructions as fast as possible. The game saves the player time, game title, result, and date/time to Firebase Realtime Database. The game can also retrieve saved time and display them as a leader board.
 
 ## Tools Used
 - Unity
@@ -37,8 +37,8 @@ Firebase Realtime Database
 3. Press Play.
 4. Enter a player name.
 5. Click Start Game.
-6. Move the character using A/D or Left/Right Arrow keys.
-7. Get to the end in the fastest way possible.
+6. Move the mouse to click, drag and drop ingame objects.
+7. Get to cooking to learn and finish it fast.
 8. Click Save results.
 9. Click Load Leaderboard.
 
@@ -46,7 +46,7 @@ Firebase Realtime Database
 The instructor GitHub account gracheleliza was added as collaborator.
 
 ## Known Limitations
-This is a classroom prototype only. It does not include user authentication or production-level security rules.
+This is a classroom prototype only. It does not include user authentication or production-level security rules. No Internet connection is required this game is fully offline for all users to play.
 
 ## References
 List all tutorials, documentation, or guides used.
