@@ -1,4 +1,4 @@
-# IT25 Database Connectivity Prototype
+# IT25 Capstone Project for Game Development
 
 ## Project Title
 Lutuoan
