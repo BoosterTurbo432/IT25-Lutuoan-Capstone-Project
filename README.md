@@ -1,4 +1,4 @@
-# IT25 Database Connectivity Prototype
+# IT25 Capstone Project for Game Development
 
 ## Project Title
 Lutuoan
@@ -46,7 +46,7 @@ Firebase Realtime Database
 The instructor GitHub account gracheleliza was added as collaborator.
 
 ## Known Limitations
-This is a classroom prototype only. It does not include user authentication or production-level security rules. No Internet connection is required this game is fully offline for all users to play.
+10% progress has made to this development. It does not include user authentication or production-level security rules. No Internet connection is required this game is fully offline for all users to play.
 
 ## References
 List all tutorials, documentation, or guides used.
