@@ -61,6 +61,11 @@ namespace CookingSystem
         public string IngredientName => ingredientName;
         public bool IsBeingDragged { get; private set; }
 
+        /// <summary>
+        /// Fires when the ingredient is successfully placed and accepted into a cooking station.
+        /// </summary>
+        public event System.Action<DraggableIngredient> onAccepted;
+
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
@@ -90,6 +95,12 @@ namespace CookingSystem
             }
 
             IsBeingDragged = true;
+
+            if (rootCanvas == null)
+            {
+                var parentCanvas = GetComponentInParent<Canvas>();
+                if (parentCanvas != null) rootCanvas = parentCanvas.rootCanvas;
+            }
 
             // 1. Cache return position and hierarchy
             originalParent = transform.parent;
@@ -155,6 +166,8 @@ namespace CookingSystem
                 transform.SetParent(targetContainer, false);
                 rectTransform.anchoredPosition = Vector2.zero;
             }
+
+            onAccepted?.Invoke(this);
         }
 
         /// <summary>

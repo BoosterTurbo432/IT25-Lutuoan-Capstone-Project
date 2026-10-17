@@ -71,6 +71,9 @@ namespace CookingSystem
         [Tooltip("Fires when the station is cleared and ready for new ingredients.")]
         public UnityEvent onStationReset;
 
+        [Tooltip("Fires when a completed dish is served, passing the generated dish name.")]
+        public UnityEvent<string> onDishServed;
+
         // Runtime state
         private CookingStationState currentState = CookingStationState.Idle;
         private readonly List<DraggableIngredient> currentIngredients = new List<DraggableIngredient>();
@@ -215,6 +218,52 @@ namespace CookingSystem
             {
                 progressBarFill.fillAmount = progress;
             }
+        }
+
+        /// <summary>
+        /// Generates a dish name based on the current recipe ingredients.
+        /// </summary>
+        public string GenerateDishName()
+        {
+            if (currentIngredients.Count == 0) return "Chef's Secret Stew";
+
+            bool hasTomato = false;
+            bool hasCheese = false;
+            bool hasMeat = false;
+            bool hasMushroom = false;
+
+            foreach (var ing in currentIngredients)
+            {
+                if (ing == null) continue;
+                if (ing.Type == IngredientType.Tomato) hasTomato = true;
+                if (ing.Type == IngredientType.Cheese) hasCheese = true;
+                if (ing.Type == IngredientType.Meat) hasMeat = true;
+                if (ing.Type == IngredientType.Mushroom) hasMushroom = true;
+            }
+
+            if (hasTomato && hasMeat && hasCheese) return "Hearty Meat & Tomato Casserole";
+            if (hasMeat && hasMushroom) return "Savory Meat & Mushroom Stew";
+            if (hasTomato && hasCheese) return "Tomato & Cheese Delight";
+            if (hasTomato && hasMushroom) return "Rustic Mushroom Tomato Soup";
+            if (hasMeat && hasTomato) return "Hearty Tomato & Beef Pot";
+            if (hasCheese && hasMushroom) return "Creamy Cheese Mushroom Chowder";
+            if (hasMeat) return "Savory Braised Meat Soup";
+            if (hasTomato) return "Classic Tomato Bisque";
+            if (hasCheese) return "Rich Golden Cheese Fondue";
+            if (hasMushroom) return "Wild Woodland Mushroom Soup";
+
+            return "Special House Stew";
+        }
+
+        /// <summary>
+        /// Serves the cooked dish, emits onDishServed, and resets the station.
+        /// </summary>
+        public string ServeDish()
+        {
+            string dishName = GenerateDishName();
+            ResetStation(destroyIngredients: true);
+            onDishServed?.Invoke(dishName);
+            return dishName;
         }
 
         /// <summary>

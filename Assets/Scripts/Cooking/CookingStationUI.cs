@@ -125,7 +125,11 @@ namespace CookingSystem
 
         private void OnServeButtonClicked()
         {
-            station.ResetStation(destroyIngredients: true);
+            string dishName = station.ServeDish();
+            if (DishNotificationUI.Instance != null)
+            {
+                DishNotificationUI.Instance.ShowDishServed(dishName);
+            }
         }
 
         private void UpdateStatusText()
