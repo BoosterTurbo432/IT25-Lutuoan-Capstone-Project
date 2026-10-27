@@ -26,6 +26,9 @@ namespace CookingSystem.EditorTools
 
         // Warm "kitchen" palette.
         private static readonly Color WindowColor = Hex("FFF6E5");
+        private static readonly Color CardColor = Hex("FFFFFF");
+        private static readonly Color IconFrameColor = Hex("EADCC9");
+        private static readonly Color IconPlaceholderColor = new Color(0.85f, 0.8f, 0.75f, 0.5f);
         private static readonly Color TitleColor = Hex("5A3A22");
         private static readonly Color TextColor = Hex("3B2A1A");
         private static readonly Color MutedTextColor = Hex("8C7A6B");
@@ -38,6 +41,7 @@ namespace CookingSystem.EditorTools
 
         private static Sprite roundedSprite;
         private static Sprite backgroundSprite;
+        private static Sprite lutuoanBackgroundSprite;
         private static Sprite knobSprite;
         private static Sprite checkmarkSprite;
         private static TMP_FontAsset font;
@@ -49,6 +53,8 @@ namespace CookingSystem.EditorTools
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
             Scene scene = OpenMainMenuScene();
             if (!Build(scene)) return;
 
@@ -57,12 +63,22 @@ namespace CookingSystem.EditorTools
             Debug.Log("[MainMenuSceneBuilder] Main menu built and saved.");
         }
 
+        [MenuItem("Tools/Main Menu/Create Standalone Credits Scene")]
+        public static void CreateCreditsSceneFromMenu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            BuildCreditsScene();
+        }
+
         /// <summary>
         /// Batch mode: Unity.exe -batchmode -projectPath &lt;path&gt; -quit
         /// -executeMethod CookingSystem.EditorTools.MainMenuSceneBuilder.BuildFromCommandLine
         /// </summary>
         public static void BuildFromCommandLine()
         {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
             Scene scene = OpenMainMenuScene();
             bool success = Build(scene) && EditorSceneManager.SaveScene(scene);
 
@@ -104,8 +120,27 @@ namespace CookingSystem.EditorTools
             ConfigureCanvasScaler(canvas);
 
             // --- Background & main menu group ---
-            Transform backgroundTint = RenameChild(canvasRect, "Panel", "BackgroundTint");
+            Transform bgChild = RenameChild(canvasRect, "BackgroundTint", "Background") ??
+                                RenameChild(canvasRect, "Panel", "Background");
+            if (bgChild == null) bgChild = canvasRect.Find("Background");
+
+            RectTransform backgroundRect = bgChild != null ? (RectTransform)bgChild : CreateRect("Background", canvasRect);
+            backgroundRect.name = "Background";
+            Stretch(backgroundRect);
+
+            Image bgImage = GetOrAdd<Image>(backgroundRect.gameObject);
+            bgImage.sprite = lutuoanBackgroundSprite ?? backgroundSprite;
+            bgImage.color = Color.white;
+            bgImage.raycastTarget = false;
+
+            CanvasGroup bgCanvasGroup = GetOrAdd<CanvasGroup>(backgroundRect.gameObject);
+            bgCanvasGroup.alpha = 1f;
+
             Transform logo = RenameChild(canvasRect, "Image", "Logo");
+            if (logo != null)
+            {
+                GetOrAdd<CanvasGroup>(logo.gameObject);
+            }
 
             RectTransform menuGroup = FindOrCreateChild(canvasRect, "MainMenuGroup");
             Stretch(menuGroup);
@@ -122,11 +157,47 @@ namespace CookingSystem.EditorTools
                 return false;
             }
 
+            // CanvasGroups on each button for individual alpha fading during the staggered pan
+            GetOrAdd<CanvasGroup>(startButton.gameObject);
+            GetOrAdd<CanvasGroup>(settingsButton.gameObject);
+            GetOrAdd<CanvasGroup>(creditsButton.gameObject);
+            GetOrAdd<CanvasGroup>(exitButton.gameObject);
+
             // Top-to-bottom order so automatic keyboard/gamepad navigation feels natural.
             foreach (Button button in new[] { startButton, settingsButton, creditsButton, exitButton })
             {
                 if (button != null) button.transform.SetAsLastSibling();
             }
+
+            // --- Pan Right Intro Animation ---
+            UIPanRightIntro panIntro = GetOrAdd<UIPanRightIntro>(canvas.gameObject);
+            var panSo = new SerializedObject(panIntro);
+            SetRef(panSo, "logoRect", logo != null ? (RectTransform)logo : null);
+            SetRef(panSo, "logoCanvasGroup", logo != null ? logo.GetComponent<CanvasGroup>() : null);
+
+            var buttonsProp = panSo.FindProperty("menuButtons");
+            if (buttonsProp != null)
+            {
+                buttonsProp.ClearArray();
+                Button[] orderedButtons = new[] { startButton, settingsButton, creditsButton, exitButton };
+                for (int i = 0; i < orderedButtons.Length; i++)
+                {
+                    if (orderedButtons[i] != null)
+                    {
+                        buttonsProp.InsertArrayElementAtIndex(buttonsProp.arraySize);
+                        buttonsProp.GetArrayElementAtIndex(buttonsProp.arraySize - 1).objectReferenceValue = (RectTransform)orderedButtons[i].transform;
+                    }
+                }
+            }
+            SetRef(panSo, "mainMenuGroup", menuCanvasGroup);
+            SetRef(panSo, "backgroundCanvasGroup", bgCanvasGroup);
+            panSo.FindProperty("panDistance").floatValue = 140f;
+            panSo.FindProperty("logoDuration").floatValue = 0.75f;
+            panSo.FindProperty("buttonDuration").floatValue = 0.58f;
+            panSo.FindProperty("buttonStaggerDelay").floatValue = 0.09f;
+            panSo.ApplyModifiedPropertiesWithoutUndo();
+
+            panIntro.RecordRestingPositions();
 
             // --- Popups (rebuilt every run) ---
             Transform oldLayer = canvasRect.Find("PopupLayer");
@@ -137,6 +208,7 @@ namespace CookingSystem.EditorTools
 
             PlayPopupRefs play = BuildPlayConfigPopup(popupLayer);
             SettingsPopupRefs settings = BuildSettingsPopup(popupLayer);
+            CreditsPopupRefs credits = BuildCreditsPopup(popupLayer);
             ConfirmPopupRefs overwrite = BuildConfirmPopup(popupLayer, "OverwriteConfirmPopup",
                 "Start Over?", "Starting a new game will replace your saved progress.",
                 "Go Back", "Start New", new Vector2(860f, 470f));
@@ -145,8 +217,8 @@ namespace CookingSystem.EditorTools
                 "Keep Cooking!", "Yes, Quit", new Vector2(820f, 400f));
 
             // --- Draw order: background, logo, menu, popups on top ---
-            if (backgroundTint != null) backgroundTint.SetSiblingIndex(0);
-            if (logo != null) logo.SetSiblingIndex(backgroundTint != null ? 1 : 0);
+            if (backgroundRect != null) backgroundRect.SetSiblingIndex(0);
+            if (logo != null) logo.SetSiblingIndex(1);
             menuGroup.SetSiblingIndex(canvasRect.childCount - 2);
             popupLayer.SetAsLastSibling();
 
@@ -158,8 +230,10 @@ namespace CookingSystem.EditorTools
             SetRef(so, "settingsButton", settingsButton);
             SetRef(so, "exitButton", exitButton);
             SetRef(so, "creditsButton", creditsButton);
+            SetRef(so, "panRightIntro", panIntro);
             SetRef(so, "playConfigPopup", play.Popup);
             SetRef(so, "settingsPopup", settings.Popup);
+            SetRef(so, "creditsPopup", credits.Popup);
             SetRef(so, "quitConfirmPopup", quit.Popup);
             SetRef(so, "newGameButton", play.NewGame);
             SetRef(so, "loadSaveButton", play.LoadSave);
@@ -176,6 +250,7 @@ namespace CookingSystem.EditorTools
             // Start hidden in the editor (MainMenuManager also hides them on Start).
             play.Popup.gameObject.SetActive(false);
             settings.Popup.gameObject.SetActive(false);
+            credits.Popup.gameObject.SetActive(false);
             overwrite.Popup.gameObject.SetActive(false);
             quit.Popup.gameObject.SetActive(false);
 
@@ -229,6 +304,11 @@ namespace CookingSystem.EditorTools
         }
 
         private struct SettingsPopupRefs
+        {
+            public UIPopupPanel Popup;
+        }
+
+        private struct CreditsPopupRefs
         {
             public UIPopupPanel Popup;
         }
@@ -295,6 +375,102 @@ namespace CookingSystem.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return new SettingsPopupRefs { Popup = popup };
+        }
+
+        private static CreditsPopupRefs BuildCreditsPopup(Transform layer)
+        {
+            UIPopupPanel popup = CreatePopupRoot(layer, "CreditsPopup", out Button backdrop);
+            RectTransform window = CreateWindow(popup.transform, new Vector2(1180f, 740f));
+
+            CreateTitle(window, "Credits");
+            CreateLayoutText(window, "Subtitle", "Development Team", 30f, MutedTextColor, 36f, 1040f);
+
+            // Container row for 5 member cards
+            RectTransform membersRow = CreateRect("MembersRow", window);
+            HorizontalLayoutGroup hlg = membersRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 18f;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+
+            LayoutElement rowLayout = membersRow.gameObject.AddComponent<LayoutElement>();
+            rowLayout.preferredWidth = 1040f;
+            rowLayout.preferredHeight = 360f;
+
+            for (int i = 0; i < 5; i++)
+            {
+                CreateMemberCard(membersRow, i + 1);
+            }
+
+            Button back = CreateButton(window, "BackButton", "Back", ButtonStyle.Light, 320f, 76f);
+            ConfigurePopup(popup, window, back, backdrop, back);
+
+            return new CreditsPopupRefs { Popup = popup };
+        }
+
+        private static void CreateMemberCard(Transform parent, int index)
+        {
+            RectTransform card = CreateRect($"MemberCard_{index}", parent);
+            AddImage(card, CardColor, roundedSprite, 0.35f);
+            AddShadow(card.gameObject, new Vector2(0f, -4f), 0.2f);
+
+            LayoutElement cardLayout = card.gameObject.AddComponent<LayoutElement>();
+            cardLayout.preferredWidth = 184f;
+            cardLayout.preferredHeight = 350f;
+
+            VerticalLayoutGroup vlg = card.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(12, 12, 20, 16);
+            vlg.spacing = 12f;
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = false;
+            vlg.childForceExpandHeight = false;
+
+            // Avatar / Icon Frame
+            RectTransform iconFrame = CreateRect("IconFrame", card);
+            AddImage(iconFrame, IconFrameColor, roundedSprite, 0.5f);
+            LayoutElement frameLayout = iconFrame.gameObject.AddComponent<LayoutElement>();
+            frameLayout.preferredWidth = 120f;
+            frameLayout.preferredHeight = 120f;
+
+            // Blank image slot ready to be setup later
+            RectTransform iconRect = CreateRect("ImageIcon", iconFrame);
+            Stretch(iconRect);
+            iconRect.offsetMin = new Vector2(6f, 6f);
+            iconRect.offsetMax = new Vector2(-6f, -6f);
+            Image iconImage = iconRect.gameObject.AddComponent<Image>();
+            iconImage.sprite = null;
+            iconImage.color = IconPlaceholderColor;
+            iconImage.raycastTarget = false;
+
+            // Member Name
+            RectTransform nameRect = CreateRect("MemberName", card);
+            TextMeshProUGUI nameText = nameRect.gameObject.AddComponent<TextMeshProUGUI>();
+            if (font != null) nameText.font = font;
+            nameText.text = $"Member {index}";
+            nameText.fontSize = 34f;
+            nameText.color = TextColor;
+            nameText.alignment = TextAlignmentOptions.Center;
+            nameText.raycastTarget = false;
+            LayoutElement nameLayout = nameRect.gameObject.AddComponent<LayoutElement>();
+            nameLayout.preferredWidth = 160f;
+            nameLayout.preferredHeight = 44f;
+
+            // Member Role
+            RectTransform roleRect = CreateRect("MemberRole", card);
+            TextMeshProUGUI roleText = roleRect.gameObject.AddComponent<TextMeshProUGUI>();
+            if (font != null) roleText.font = font;
+            roleText.text = "Role / Title";
+            roleText.fontSize = 24f;
+            roleText.color = MutedTextColor;
+            roleText.alignment = TextAlignmentOptions.Center;
+            roleText.raycastTarget = false;
+            LayoutElement roleLayout = roleRect.gameObject.AddComponent<LayoutElement>();
+            roleLayout.preferredWidth = 160f;
+            roleLayout.preferredHeight = 32f;
         }
 
         private static ConfirmPopupRefs BuildConfirmPopup(Transform layer, string name, string title, string message,
@@ -570,12 +746,45 @@ namespace CookingSystem.EditorTools
             knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             checkmarkSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
 
+            lutuoanBackgroundSprite = LoadLutuoanBackgroundSprite();
+
             font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
             if (font == null)
             {
                 Debug.LogWarning($"[MainMenuSceneBuilder] Font not found at {FontPath}; using the TMP default font.");
                 font = TMP_Settings.defaultFontAsset;
             }
+        }
+
+        private static Sprite LoadLutuoanBackgroundSprite()
+        {
+            string[] candidatePaths = new[]
+            {
+                "Assets/CozyUI/Lutuoanbackground 1.gif",
+                "Assets/CozyUI/Lutuoanbackground.gif"
+            };
+
+            foreach (string path in candidatePaths)
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    Sprite s = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
+                    if (s != null) return s;
+                }
+            }
+
+            if (System.IO.Directory.Exists("Assets/CozyUI"))
+            {
+                string[] files = System.IO.Directory.GetFiles("Assets/CozyUI", "Lutuoanbackground*.gif");
+                foreach (string file in files)
+                {
+                    string unityPath = file.Replace('\\', '/');
+                    Sprite s = AssetDatabase.LoadAllAssetsAtPath(unityPath).OfType<Sprite>().FirstOrDefault();
+                    if (s != null) return s;
+                }
+            }
+
+            return null;
         }
 
         private static RectTransform CreateRect(string name, Transform parent)
@@ -662,6 +871,88 @@ namespace CookingSystem.EditorTools
             return ColorUtility.TryParseHtmlString("#" + hex, out Color color) ? color : Color.magenta;
         }
 
+        public static void BuildCreditsScene()
+        {
+            LoadResources();
+            string scenePath = "Assets/Scenes/creditsscene.unity";
+            Scene newScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            // Camera
+            var cameraGo = new GameObject("Main Camera");
+            Camera cam = cameraGo.AddComponent<Camera>();
+            cam.orthographic = true;
+            cam.orthographicSize = 5f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Hex("314D79"); // Matches main menu camera
+            cameraGo.AddComponent<AudioListener>();
+            cameraGo.transform.position = new Vector3(0f, 0f, -10f);
+
+            // EventSystem
+            var eventSystemGo = new GameObject("EventSystem");
+            eventSystemGo.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            eventSystemGo.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+
+            // Canvas
+            var canvasGo = new GameObject("Canvas");
+            Canvas canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvasGo.AddComponent<GraphicRaycaster>();
+            ConfigureCanvasScaler(canvas);
+
+            RectTransform canvasRect = (RectTransform)canvas.transform;
+
+            // Background
+            RectTransform bg = CreateRect("Background", canvasRect);
+            Stretch(bg);
+            Image creditsBg = AddImage(bg, Color.white, lutuoanBackgroundSprite ?? backgroundSprite);
+            creditsBg.raycastTarget = false;
+
+            // Credits Window
+            RectTransform window = CreateRect("CreditsWindow", canvasRect);
+            window.sizeDelta = new Vector2(1180f, 740f);
+            AddImage(window, WindowColor, roundedSprite, 0.25f);
+            AddShadow(window.gameObject, new Vector2(0f, -10f), 0.35f);
+
+            VerticalLayoutGroup layout = window.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(60, 60, 45, 45);
+            layout.spacing = 18f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+
+            CreateTitle(window, "Credits");
+            CreateLayoutText(window, "Subtitle", "Development Team", 30f, MutedTextColor, 36f, 1040f);
+
+            // Members row
+            RectTransform membersRow = CreateRect("MembersRow", window);
+            HorizontalLayoutGroup hlg = membersRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 18f;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+
+            LayoutElement rowLayout = membersRow.gameObject.AddComponent<LayoutElement>();
+            rowLayout.preferredWidth = 1040f;
+            rowLayout.preferredHeight = 360f;
+
+            for (int i = 0; i < 5; i++)
+            {
+                CreateMemberCard(membersRow, i + 1);
+            }
+
+            Button backButton = CreateButton(window, "BackToMainMenuButton", "Main Menu", ButtonStyle.Light, 340f, 76f);
+            SceneLoader loader = canvasGo.AddComponent<SceneLoader>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(backButton.onClick, loader.LoadMainMenu);
+
+            EditorSceneManager.SaveScene(newScene, scenePath);
+            BuildSceneListSetup.AddGameScenes();
+            Debug.Log($"[MainMenuSceneBuilder] Standalone Credits Scene created at {scenePath}");
+        }
+
         #endregion
     }
 
@@ -680,6 +971,7 @@ namespace CookingSystem.EditorTools
             "Assets/Scenes/loadingscreen.unity",
             "Assets/Scenes/gamescene.unity",
             "Assets/Scenes/leaderboardscene.unity",
+            "Assets/Scenes/creditsscene.unity",
         };
 
         static BuildSceneListSetup()

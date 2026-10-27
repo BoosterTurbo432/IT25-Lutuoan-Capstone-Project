@@ -57,6 +57,10 @@ namespace CookingSystem.UI
         [Tooltip("Scene loaded by New Game / Load Save. Must be added to the Build Profile scene list.")]
         [SerializeField] private string gameplaySceneName = "gamescene";
 
+        [Header("Intro Animation (Optional)")]
+        [Tooltip("Smooth Pan Right entrance animation on boot.")]
+        [SerializeField] private UIPanRightIntro panRightIntro;
+
         [Header("Input")]
         [Tooltip("Escape / gamepad B closes the top popup, or opens the quit prompt when no popup is open.")]
         [SerializeField] private bool handleBackInput = true;
@@ -97,6 +101,11 @@ namespace CookingSystem.UI
             RegisterPopup(quitConfirmPopup);
             RegisterPopup(creditsPopup);
             RegisterPopup(overwriteConfirmPopup);
+
+            if (panRightIntro != null)
+            {
+                panRightIntro.onIntroComplete.AddListener(HandleIntroComplete);
+            }
 
 #if UNITY_WEBGL && !UNITY_EDITOR
             // Browsers can't be closed by Application.Quit, so hide the Exit button entirely.
@@ -255,11 +264,22 @@ namespace CookingSystem.UI
 
         private void HandlePopupCloseRequested(UIPopupPanel popup) => ClosePopup(popup);
 
+        private void HandleIntroComplete()
+        {
+            RefreshMainMenuInteractivity();
+
+            if (!isUsingPointer && startCookingButton != null && EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(startCookingButton.gameObject);
+            }
+        }
+
         private void RefreshMainMenuInteractivity()
         {
             if (mainMenuGroup == null) return;
 
-            bool isInteractive = !IsAnyPopupOpen && !isLoadingScene;
+            bool isIntroBlocking = panRightIntro != null && panRightIntro.IsIntroPlaying;
+            bool isInteractive = !IsAnyPopupOpen && !isLoadingScene && !isIntroBlocking;
             mainMenuGroup.interactable = isInteractive;   // Blocks keyboard/gamepad navigation & submit.
             mainMenuGroup.blocksRaycasts = isInteractive; // Blocks mouse/touch hover & clicks.
         }
