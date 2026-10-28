@@ -20,6 +20,7 @@ namespace CookingSystem.EditorTools
     public static class MainMenuSceneBuilder
     {
         private const string FontPath = "Assets/Fonts/Stay With Me SDF.asset";
+        private const string GifPath = "Assets/CozyUI/Lutuoanbackground.gif";
         private const float ContentWidth = 560f;
 
         private enum ButtonStyle { Light, Primary, Danger }
@@ -127,6 +128,9 @@ namespace CookingSystem.EditorTools
             RectTransform backgroundRect = bgChild != null ? (RectTransform)bgChild : CreateRect("Background", canvasRect);
             backgroundRect.name = "Background";
             Stretch(backgroundRect);
+            // Slight margin padding so ambient drift pan (+-30px) does not expose borders
+            backgroundRect.offsetMin = new Vector2(-40f, -20f);
+            backgroundRect.offsetMax = new Vector2(40f, 20f);
 
             Image bgImage = GetOrAdd<Image>(backgroundRect.gameObject);
             bgImage.sprite = lutuoanBackgroundSprite ?? backgroundSprite;
@@ -135,6 +139,21 @@ namespace CookingSystem.EditorTools
 
             CanvasGroup bgCanvasGroup = GetOrAdd<CanvasGroup>(backgroundRect.gameObject);
             bgCanvasGroup.alpha = 1f;
+
+            // Remove any old/broken or duplicate animator components
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(backgroundRect.gameObject);
+            foreach (var oldAnim in backgroundRect.GetComponents<UIAnimatedBackground>())
+            {
+                Object.DestroyImmediate(oldAnim);
+            }
+
+            UIAnimatedBackground animBg = backgroundRect.gameObject.AddComponent<UIAnimatedBackground>();
+            Sprite[] frames = LoadBackgroundFrames();
+            if (frames != null && frames.Length > 0)
+            {
+                animBg.Frames = frames;
+                animBg.FramesPerSecond = 8f;
+            }
 
             Transform logo = RenameChild(canvasRect, "Image", "Logo");
             if (logo != null)
@@ -739,6 +758,32 @@ namespace CookingSystem.EditorTools
 
         #region Helpers
 
+        private static string ResolveBackgroundGifPath()
+        {
+            string[] preferred = new[]
+            {
+                "Assets/CozyUI/Lutuoanbackground 1.gif",
+                "Assets/CozyUI/Lutuoanbackground.gif"
+            };
+
+            foreach (string p in preferred)
+            {
+                if (System.IO.File.Exists(p)) return p;
+            }
+
+            string dir = "Assets/CozyUI";
+            if (System.IO.Directory.Exists(dir))
+            {
+                string[] files = System.IO.Directory.GetFiles(dir, "*background*.gif");
+                if (files.Length > 0) return files[0].Replace('\\', '/');
+
+                string[] allGifs = System.IO.Directory.GetFiles(dir, "*.gif");
+                if (allGifs.Length > 0) return allGifs[0].Replace('\\', '/');
+            }
+
+            return "Assets/CozyUI/Lutuoanbackground 1.gif";
+        }
+
         private static void LoadResources()
         {
             roundedSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
@@ -746,7 +791,13 @@ namespace CookingSystem.EditorTools
             knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             checkmarkSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
 
-            lutuoanBackgroundSprite = LoadLutuoanBackgroundSprite();
+            string gifPath = ResolveBackgroundGifPath();
+            lutuoanBackgroundSprite = AssetDatabase.LoadAllAssetsAtPath(gifPath).OfType<Sprite>().FirstOrDefault();
+            if (lutuoanBackgroundSprite == null)
+            {
+                Sprite[] frames = LoadBackgroundFrames();
+                if (frames != null && frames.Length > 0) lutuoanBackgroundSprite = frames[0];
+            }
 
             font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
             if (font == null)
@@ -756,35 +807,25 @@ namespace CookingSystem.EditorTools
             }
         }
 
-        private static Sprite LoadLutuoanBackgroundSprite()
+        private static Sprite[] LoadBackgroundFrames()
         {
-            string[] candidatePaths = new[]
-            {
-                "Assets/CozyUI/Lutuoanbackground 1.gif",
-                "Assets/CozyUI/Lutuoanbackground.gif"
-            };
+            string framesDir = "Assets/CozyUI/BackgroundFrames";
+            if (!System.IO.Directory.Exists(framesDir)) return null;
 
-            foreach (string path in candidatePaths)
+            string[] frameFiles = System.IO.Directory.GetFiles(framesDir, "bg_frame_*.png");
+            if (frameFiles == null || frameFiles.Length == 0) return null;
+
+            System.Array.Sort(frameFiles, string.CompareOrdinal);
+
+            var sprites = new System.Collections.Generic.List<Sprite>();
+            foreach (string file in frameFiles)
             {
-                if (System.IO.File.Exists(path))
-                {
-                    Sprite s = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
-                    if (s != null) return s;
-                }
+                string unityPath = file.Replace('\\', '/');
+                Sprite s = AssetDatabase.LoadAssetAtPath<Sprite>(unityPath);
+                if (s != null) sprites.Add(s);
             }
 
-            if (System.IO.Directory.Exists("Assets/CozyUI"))
-            {
-                string[] files = System.IO.Directory.GetFiles("Assets/CozyUI", "Lutuoanbackground*.gif");
-                foreach (string file in files)
-                {
-                    string unityPath = file.Replace('\\', '/');
-                    Sprite s = AssetDatabase.LoadAllAssetsAtPath(unityPath).OfType<Sprite>().FirstOrDefault();
-                    if (s != null) return s;
-                }
-            }
-
-            return null;
+            return sprites.Count > 0 ? sprites.ToArray() : null;
         }
 
         private static RectTransform CreateRect(string name, Transform parent)
