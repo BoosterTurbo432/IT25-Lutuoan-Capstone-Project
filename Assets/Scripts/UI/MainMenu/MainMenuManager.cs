@@ -56,6 +56,10 @@ namespace CookingSystem.UI
         [Header("Scene Loading")]
         [Tooltip("Scene loaded by New Game / Load Save. Must be added to the Build Profile scene list.")]
         [SerializeField] private string gameplaySceneName = "gamescene";
+        [Tooltip("Dedicated loading screen scene for smooth transitions. If empty or not loadable, loads gameplay scene directly.")]
+        [SerializeField] private string loadingSceneName = "loadingscreen";
+        [Tooltip("Whether transitions to the gameplay scene route through the dedicated loading screen.")]
+        [SerializeField] private bool useLoadingScreen = true;
 
         [Header("Intro Animation (Optional)")]
         [Tooltip("Smooth Pan Right entrance animation on boot.")]
@@ -336,6 +340,9 @@ namespace CookingSystem.UI
         private bool CanLoadGameplayScene()
         {
             if (Application.CanStreamedLevelBeLoaded(gameplaySceneName)) return true;
+#if UNITY_EDITOR
+            if (System.IO.File.Exists($"Assets/Scenes/{gameplaySceneName}.unity")) return true;
+#endif
 
             Debug.LogError($"[MainMenuManager] Scene '{gameplaySceneName}' can't be loaded. " +
                            "Add it to File > Build Profiles > Scene List.", this);
@@ -344,7 +351,7 @@ namespace CookingSystem.UI
 
         private void LoadGameplayScene(bool loadFromSave)
         {
-            if (isLoadingScene || !CanLoadGameplayScene()) return;
+            if (isLoadingScene) return;
 
             GameLaunchOptions.LoadFromSave = loadFromSave;
             isLoadingScene = true;
@@ -353,7 +360,28 @@ namespace CookingSystem.UI
             if (IsAnyPopupOpen) popupStack[popupStack.Count - 1].Popup.SetSuspended(true);
             RefreshMainMenuInteractivity();
 
-            SceneManager.LoadSceneAsync(gameplaySceneName);
+            bool canUseLoadingScreen = useLoadingScreen && Application.CanStreamedLevelBeLoaded(loadingSceneName);
+#if UNITY_EDITOR
+            if (useLoadingScreen && !canUseLoadingScreen && System.IO.File.Exists($"Assets/Scenes/{loadingSceneName}.unity"))
+            {
+                canUseLoadingScreen = true;
+            }
+#endif
+            if (canUseLoadingScreen)
+            {
+                LoadingBridge.LoadSceneAsync(gameplaySceneName, loadFromSave, loadingSceneName);
+            }
+            else
+            {
+                if (!CanLoadGameplayScene())
+                {
+                    isLoadingScene = false;
+                    RefreshMainMenuInteractivity();
+                    return;
+                }
+
+                SceneManager.LoadSceneAsync(gameplaySceneName);
+            }
         }
 
         #endregion

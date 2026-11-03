@@ -49,6 +49,31 @@ namespace CookingSystem.EditorTools
 
         #region Entry Points
 
+        [MenuItem("Tools/Build All Project UI (Loading Screen + Main Menu)")]
+        public static void BuildAllProjectUI()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+            // 1. Build Loading Screen Scene
+            Scene loadingScene = LoadingScreenBuilder.OpenLoadingScene();
+            if (LoadingScreenBuilder.Build(loadingScene))
+            {
+                EditorSceneManager.SaveScene(loadingScene, LoadingScreenBuilder.LoadingScenePath);
+            }
+
+            // 2. Build Main Menu Scene
+            Scene menuScene = OpenMainMenuScene();
+            if (Build(menuScene))
+            {
+                EditorSceneManager.SaveScene(menuScene);
+            }
+
+            BuildSceneListSetup.AddGameScenes();
+            Debug.Log("[MainMenuSceneBuilder] Both Loading Screen and Main Menu built and saved!");
+        }
+
         [MenuItem("Tools/Main Menu/Build Main Menu UI")]
         public static void BuildFromMenu()
         {
@@ -159,6 +184,18 @@ namespace CookingSystem.EditorTools
             if (logo != null)
             {
                 GetOrAdd<CanvasGroup>(logo.gameObject);
+                Image logoImg = logo.GetComponent<Image>();
+                if (logoImg != null)
+                {
+                    Sprite logoSprite = LoadLogoSprite();
+                    if (logoSprite != null)
+                    {
+                        logoImg.sprite = logoSprite;
+                        logoImg.color = Color.white;
+                        logoImg.preserveAspect = true;
+                    }
+                    logoImg.raycastTarget = false;
+                }
             }
 
             RectTransform menuGroup = FindOrCreateChild(canvasRect, "MainMenuGroup");
@@ -264,6 +301,8 @@ namespace CookingSystem.EditorTools
             SetRef(so, "confirmQuitButton", quit.Confirm);
             SetRef(so, "cancelQuitButton", quit.Cancel);
             so.FindProperty("gameplaySceneName").stringValue = "gamescene";
+            so.FindProperty("loadingSceneName").stringValue = "loadingscreen";
+            so.FindProperty("useLoadingScreen").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // Start hidden in the editor (MainMenuManager also hides them on Start).
@@ -828,6 +867,17 @@ namespace CookingSystem.EditorTools
             return sprites.Count > 0 ? sprites.ToArray() : null;
         }
 
+        private static Sprite LoadLogoSprite()
+        {
+            const string logoPath = "Assets/Images/Logo Luto.png";
+            if (!System.IO.File.Exists(logoPath)) return null;
+
+            Sprite subSprite = AssetDatabase.LoadAllAssetsAtPath(logoPath)
+                .OfType<Sprite>()
+                .FirstOrDefault();
+            return subSprite != null ? subSprite : AssetDatabase.LoadAssetAtPath<Sprite>(logoPath);
+        }
+
         private static RectTransform CreateRect(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform)) { layer = LayerMask.NameToLayer("UI") };
@@ -1004,12 +1054,13 @@ namespace CookingSystem.EditorTools
     [InitializeOnLoad]
     public static class BuildSceneListSetup
     {
+        public const string LoadingScenePath = "Assets/Scenes/loadingscreen.unity";
         public const string MainMenuScenePath = "Assets/Scenes/mainmenuscene.unity";
 
         private static readonly string[] DefaultScenePaths =
         {
+            LoadingScenePath,
             MainMenuScenePath,
-            "Assets/Scenes/loadingscreen.unity",
             "Assets/Scenes/gamescene.unity",
             "Assets/Scenes/leaderboardscene.unity",
             "Assets/Scenes/creditsscene.unity",
@@ -1037,12 +1088,14 @@ namespace CookingSystem.EditorTools
             }
 
             // The first enabled scene is the one the built game boots into.
-            int mainMenuIndex = scenes.FindIndex(scene => scene.path == MainMenuScenePath);
-            if (mainMenuIndex > 0 || (mainMenuIndex == 0 && !scenes[0].enabled))
+            // With dedicated loading screen enabled, the game boots into loadingscreen.unity.
+            string initialScenePath = System.IO.File.Exists(LoadingScenePath) ? LoadingScenePath : MainMenuScenePath;
+            int initialIndex = scenes.FindIndex(scene => scene.path == initialScenePath);
+            if (initialIndex > 0 || (initialIndex == 0 && !scenes[0].enabled))
             {
-                EditorBuildSettingsScene mainMenu = scenes[mainMenuIndex];
-                scenes.RemoveAt(mainMenuIndex);
-                scenes.Insert(0, new EditorBuildSettingsScene(mainMenu.path, true));
+                EditorBuildSettingsScene bootScene = scenes[initialIndex];
+                scenes.RemoveAt(initialIndex);
+                scenes.Insert(0, new EditorBuildSettingsScene(bootScene.path, true));
                 changed = true;
             }
 

@@ -20,9 +20,20 @@ namespace CookingSystem.UI
             SceneManager.LoadSceneAsync(sceneName);
         }
 
+        public void LoadSceneWithLoadingScreen(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName)) return;
+            LoadingBridge.LoadScene(sceneName);
+        }
+
         public void LoadMainMenu()
         {
             SceneManager.LoadScene("mainmenuscene");
+        }
+
+        public void LoadMainMenuWithLoadingScreen()
+        {
+            LoadingBridge.LoadScene("mainmenuscene");
         }
     }
 }

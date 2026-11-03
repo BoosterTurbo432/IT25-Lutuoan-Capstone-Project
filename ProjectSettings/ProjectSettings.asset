@@ -342,7 +342,9 @@ PlayerSettings:
   openGLRequireES31: 0
   openGLRequireES31AEP: 0
   openGLRequireES32: 0
-  m_TemplateCustomTags: {}
+  m_TemplateCustomTags:
+    PRIMARY_DATA_FILES: 
+    SECONDARY_DATA_FILES: 
   mobileMTRendering:
     Android: 1
     iPhone: 1
@@ -646,8 +648,8 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: Lutuoan 1.0
-  metroPackageVersion: 
+  metroPackageName: Lutuoan1.0
+  metroPackageVersion: 1.0.0.0
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
@@ -655,7 +657,7 @@ PlayerSettings:
   metroCertificateNotAfter: 0000000000000000
   metroApplicationDescription: Lutuoan 1.0
   wsaImages: {}
-  metroTileShortName: 
+  metroTileShortName: Lutuoan 1.0
   metroTileShowName: 0
   metroMediumTileShowName: 0
   metroLargeTileShowName: 0
