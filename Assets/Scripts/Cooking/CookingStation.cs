@@ -13,7 +13,8 @@ namespace CookingSystem
         Idle,
         Cooking,
         Cooked,
-        Burned
+        Burned,
+        OnFire
     }
 
     [RequireComponent(typeof(RectTransform))]
@@ -34,6 +35,25 @@ namespace CookingSystem
 
         [Tooltip("If true, cooking starts automatically once at least one ingredient is added. If false, call StartCooking() manually (e.g. via button).")]
         [SerializeField] private bool autoStartCookingWhenFull = true;
+
+        [Header("Showcase Integration")]
+        [Tooltip("Required cookware type for prepared dishes.")]
+        [SerializeField] private CookwareType cookwareType = CookwareType.Pot;
+
+        [Tooltip("If true, raw ingredients must go through PrepStation before cooking.")]
+        [SerializeField] private bool requirePrepStation = false;
+
+        [Tooltip("Optional staging tray where cooked meals are plated instead of disappearing immediately.")]
+        [SerializeField] private FoodDisplayTray displayTray;
+
+        [Tooltip("Optional burnt food draggable object revealed after extinguishing a stove fire.")]
+        [SerializeField] private DraggableBurntFood burntFoodHandle;
+
+        [Tooltip("Optional fire flame overlay activated when this burner catches fire.")]
+        [SerializeField] private GameObject fireOverlay;
+
+        [Range(0.05f, 0.5f)]
+        [SerializeField] private float fireCustomerPatiencePenalty = 0.15f;
 
         [Header("Cooking Timer")]
         [Tooltip("Time in seconds required to finish cooking.")]
@@ -74,6 +94,23 @@ namespace CookingSystem
         [Tooltip("Fires when a completed dish is served, passing the generated dish name.")]
         public UnityEvent<string> onDishServed;
 
+        [Tooltip("Fires every frame during the burn grace countdown with normalized burn progress (0..1).")]
+        public UnityEvent<float> onBurnWarningProgress;
+
+        [Tooltip("Fires when the stove catches fire after leaving food unattended.")]
+        public UnityEvent onStoveCaughtFire;
+
+        [Tooltip("Fires when the fire extinguisher puts out a stove fire.")]
+        public UnityEvent onFireExtinguished;
+
+        private DishPayload currentPayload;
+        private float currentBurnProgress;
+
+        public CookwareType Cookware => cookwareType;
+        public bool RequirePrepStation => requirePrepStation;
+        public float BurnDuration => burnDuration;
+        public float CurrentBurnProgress => currentBurnProgress;
+
         // Runtime state
         private CookingStationState currentState = CookingStationState.Idle;
         private readonly List<DraggableIngredient> currentIngredients = new List<DraggableIngredient>();
@@ -111,15 +148,117 @@ namespace CookingSystem
         {
             if (eventData.pointerDrag == null) return;
 
+            if (eventData.pointerDrag.TryGetComponent<FireExtinguisherTool>(out _))
+            {
+                if (currentState == CookingStationState.OnFire)
+                {
+                    ExtinguishFire();
+                }
+                else
+                {
+                    DishNotificationUI.Instance?.ShowNotification($"{stationName} is not on fire!");
+                }
+                return;
+            }
+
+            if (eventData.pointerDrag.TryGetComponent<DraggablePreparedDish>(out var preparedDish))
+            {
+                AcceptPreparedDish(preparedDish);
+                return;
+            }
+
             // Attempt to retrieve DraggableIngredient component from dropped object
             if (eventData.pointerDrag.TryGetComponent<DraggableIngredient>(out var ingredient))
             {
+                if (requirePrepStation)
+                {
+                    DishNotificationUI.Instance?.ShowNotification("Prep raw ingredients on the Cutting Board first!");
+                    return;
+                }
+
                 if (CanAcceptIngredient(ingredient))
                 {
                     AcceptIngredient(ingredient);
                 }
                 // If CanAcceptIngredient returns false, DraggableIngredient handles its own snap-back on OnEndDrag
             }
+        }
+
+        public bool AcceptPreparedDish(DraggablePreparedDish preparedDish)
+        {
+            if (preparedDish == null || preparedDish.Payload == null) return false;
+
+            if (currentState == CookingStationState.OnFire)
+            {
+                DishNotificationUI.Instance?.ShowNotification($"{stationName} is on fire! Use the Fire Extinguisher first.");
+                return false;
+            }
+
+            if (currentState == CookingStationState.Burned)
+            {
+                DishNotificationUI.Instance?.ShowNotification($"{stationName} has burnt food! Drag it to the Trash Can.");
+                return false;
+            }
+
+            if (currentState != CookingStationState.Idle)
+            {
+                DishNotificationUI.Instance?.ShowNotification($"{stationName} is currently busy!");
+                return false;
+            }
+
+            if (preparedDish.Payload.cookwareUsed != cookwareType)
+            {
+                DishNotificationUI.Instance?.ShowNotification($"Needs a {preparedDish.Payload.cookwareUsed} burner!");
+                return false;
+            }
+
+            currentPayload = preparedDish.Payload;
+            preparedDish.NotifyConsumed();
+            StartPreparedCooking();
+            return true;
+        }
+
+        private void StartPreparedCooking()
+        {
+            if (currentState != CookingStationState.Idle || currentPayload == null) return;
+
+            if (cookingCoroutine != null)
+            {
+                StopCoroutine(cookingCoroutine);
+            }
+
+            cookingCoroutine = StartCoroutine(CookingRoutine());
+        }
+
+        public void ExtinguishFire()
+        {
+            if (currentState != CookingStationState.OnFire) return;
+
+            currentState = CookingStationState.Burned;
+            if (fireOverlay != null) fireOverlay.SetActive(false);
+
+            if (burntFoodHandle != null)
+            {
+                burntFoodHandle.SetOwnerStation(this);
+                burntFoodHandle.ShowReadyToTrash();
+            }
+
+            onFireExtinguished?.Invoke();
+            DishNotificationUI.Instance?.ShowNotification($"{stationName} fire out! Drag burnt food into the Trash Can.");
+        }
+
+        public void ClearBurntFood()
+        {
+            if (currentState == CookingStationState.OnFire)
+            {
+                DishNotificationUI.Instance?.ShowNotification("Extinguish the fire first!");
+                return;
+            }
+
+            if (currentState != CookingStationState.Burned) return;
+
+            ResetStation(destroyIngredients: true);
+            DishNotificationUI.Instance?.ShowNotification($"{stationName} cleaned and ready!");
         }
 
         /// <summary>
@@ -192,6 +331,7 @@ namespace CookingSystem
             }
 
             currentState = CookingStationState.Cooked;
+            currentBurnProgress = 0f;
             UpdateProgressUI(1f);
             onCookingCompleted?.Invoke();
 
@@ -202,11 +342,17 @@ namespace CookingSystem
                 {
                     if (currentState != CookingStationState.Cooked) yield break;
                     burnElapsed += Time.deltaTime;
+                    currentBurnProgress = Mathf.Clamp01(burnElapsed / burnDuration);
+                    onBurnWarningProgress?.Invoke(currentBurnProgress);
                     yield return null;
                 }
 
-                currentState = CookingStationState.Burned;
+                currentState = CookingStationState.OnFire;
+                if (fireOverlay != null) fireOverlay.SetActive(true);
+                onStoveCaughtFire?.Invoke();
                 onFoodBurned?.Invoke();
+                CustomerManager.Instance?.ApplyFirePenalty(fireCustomerPatiencePenalty);
+                DishNotificationUI.Instance?.ShowNotification($"{stationName} CAUGHT FIRE! Drag Fire Extinguisher!");
             }
 
             cookingCoroutine = null;
@@ -256,14 +402,67 @@ namespace CookingSystem
         }
 
         /// <summary>
-        /// Serves the cooked dish, emits onDishServed, and resets the station.
+        /// Serves or plates the cooked dish, emits onDishServed, and resets the station.
         /// </summary>
         public string ServeDish()
         {
-            string dishName = GenerateDishName();
+            if (currentState == CookingStationState.OnFire)
+            {
+                DishNotificationUI.Instance?.ShowNotification($"{stationName} is ON FIRE! Use Fire Extinguisher first.");
+                return string.Empty;
+            }
+
+            if (currentState == CookingStationState.Burned)
+            {
+                DishNotificationUI.Instance?.ShowNotification("Burnt food cannot be served! Drag it to the Trash Can.");
+                return string.Empty;
+            }
+
+            if (currentState != CookingStationState.Cooked)
+            {
+                return string.Empty;
+            }
+
+            DishPayload finalPayload = BuildFinalPayload();
+            string dishName = finalPayload.dishName;
+
+            if (displayTray != null && !displayTray.TryPlaceMeal(finalPayload))
+            {
+                DishNotificationUI.Instance?.ShowNotification("Food Display Tray is full! Serve or discard an item first.");
+                return string.Empty;
+            }
+
             ResetStation(destroyIngredients: true);
             onDishServed?.Invoke(dishName);
             return dishName;
+        }
+
+        private DishPayload BuildFinalPayload()
+        {
+            float cookQual = Mathf.Clamp01(1f - (currentBurnProgress * 0.25f));
+            if (currentPayload != null)
+            {
+                return new DishPayload
+                {
+                    dishName = currentPayload.dishName,
+                    recipeId = currentPayload.recipeId,
+                    cookwareUsed = currentPayload.cookwareUsed,
+                    ingredients = new List<IngredientType>(currentPayload.ingredients),
+                    prepQuality = currentPayload.prepQuality,
+                    cookQuality = cookQual,
+                    placeholderColor = currentPayload.placeholderColor
+                };
+            }
+
+            return new DishPayload
+            {
+                dishName = GenerateDishName(),
+                recipeId = string.Empty,
+                cookwareUsed = cookwareType,
+                prepQuality = 1f,
+                cookQuality = cookQual,
+                placeholderColor = new Color(0.88f, 0.48f, 0.37f, 1f)
+            };
         }
 
         /// <summary>
@@ -293,7 +492,11 @@ namespace CookingSystem
             }
 
             currentIngredients.Clear();
+            currentPayload = null;
+            currentBurnProgress = 0f;
             currentState = CookingStationState.Idle;
+            if (fireOverlay != null) fireOverlay.SetActive(false);
+            if (burntFoodHandle != null) burntFoodHandle.gameObject.SetActive(false);
             UpdateProgressUI(0f);
             onStationReset?.Invoke();
         }

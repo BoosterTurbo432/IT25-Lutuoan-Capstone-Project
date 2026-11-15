@@ -1,0 +1,141 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CookingSystem
+{
+    /// <summary>
+    /// Manages spawning customers into the 3 CustomerSlotUIs with randomized orders
+    /// (MealOnly, DrinkOnly, MealAndDrink) and relays stove fire penalties.
+    /// </summary>
+    public class CustomerManager : MonoBehaviour
+    {
+        public static CustomerManager Instance { get; private set; }
+
+        [Header("Customer Slots")]
+        [SerializeField] private List<CustomerSlotUI> customerSlots = new List<CustomerSlotUI>();
+
+        [Header("Spawning")]
+        [SerializeField] private float initialSpawnDelay = 1.2f;
+        [SerializeField] private float spawnInterval = 6.5f;
+        [SerializeField] private float basePatienceSeconds = 58f;
+
+        private static readonly Color[] CustomerPalette =
+        {
+            new Color(0.84f, 0.62f, 0.51f, 1f),
+            new Color(0.56f, 0.72f, 0.84f, 1f),
+            new Color(0.68f, 0.80f, 0.58f, 1f),
+            new Color(0.85f, 0.76f, 0.52f, 1f),
+            new Color(0.76f, 0.60f, 0.78f, 1f)
+        };
+
+        private float spawnTimer;
+        private int totalSpawned;
+        private bool spawningEnabled = true;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        private void OnEnable()
+        {
+            if (LevelGameManager.Instance != null)
+            {
+                LevelGameManager.Instance.onLevelEnded += HandleLevelEnded;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (LevelGameManager.Instance != null)
+            {
+                LevelGameManager.Instance.onLevelEnded -= HandleLevelEnded;
+            }
+        }
+
+        private void Start()
+        {
+            for (int i = 0; i < customerSlots.Count; i++)
+            {
+                if (customerSlots[i] != null) customerSlots[i].InitializeEmpty();
+            }
+
+            // Start with 2 staggered customers quickly so the player immediately has orders
+            spawnTimer = initialSpawnDelay;
+        }
+
+        private void Update()
+        {
+            if (!spawningEnabled) return;
+            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
+
+            spawnTimer -= Time.deltaTime;
+            if (spawnTimer <= 0f)
+            {
+                bool spawned = TrySpawnCustomer();
+                spawnTimer = spawned && GetOccupiedCount() < 2 ? 2.2f : spawnInterval;
+            }
+        }
+
+        public bool TrySpawnCustomer()
+        {
+            var freeSlots = new List<CustomerSlotUI>();
+            for (int i = 0; i < customerSlots.Count; i++)
+            {
+                if (customerSlots[i] != null && !customerSlots[i].IsOccupied)
+                {
+                    freeSlots.Add(customerSlots[i]);
+                }
+            }
+
+            if (freeSlots.Count == 0) return false;
+
+            CustomerSlotUI target = freeSlots[Random.Range(0, freeSlots.Count)];
+            OrderType orderType = RollOrderType();
+            RecipeDefinition recipe = orderType == OrderType.DrinkOnly ? null : RecipeDatabase.GetRandomRecipe();
+            DrinkType drink = orderType == OrderType.MealOnly
+                ? DrinkType.None
+                : (Random.value < 0.5f ? DrinkType.BerryJuice : DrinkType.CalamansiTea);
+
+            Color paletteColor = CustomerPalette[totalSpawned % CustomerPalette.Length];
+            totalSpawned++;
+
+            target.AssignOrder(orderType, recipe, drink, paletteColor, basePatienceSeconds);
+            return true;
+        }
+
+        public void ApplyFirePenalty(float patienceFraction = 0.15f)
+        {
+            for (int i = 0; i < customerSlots.Count; i++)
+            {
+                if (customerSlots[i] != null && customerSlots[i].IsOccupied)
+                {
+                    customerSlots[i].ApplyPatiencePenalty(patienceFraction, "Stove Fire!");
+                }
+            }
+        }
+
+        private void HandleLevelEnded(bool _)
+        {
+            spawningEnabled = false;
+        }
+
+        private int GetOccupiedCount()
+        {
+            int count = 0;
+            for (int i = 0; i < customerSlots.Count; i++)
+            {
+                if (customerSlots[i] != null && customerSlots[i].IsOccupied) count++;
+            }
+            return count;
+        }
+
+        private static OrderType RollOrderType()
+        {
+            float r = Random.value;
+            if (r < 0.45f) return OrderType.MealOnly;
+            if (r < 0.70f) return OrderType.DrinkOnly;
+            return OrderType.MealAndDrink;
+        }
+    }
+}

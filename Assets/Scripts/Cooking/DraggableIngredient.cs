@@ -83,6 +83,15 @@ namespace CookingSystem
             originalAnchoredPosition = rectTransform.anchoredPosition;
         }
 
+        public void SetRestPosition(Vector2 newAnchoredPos)
+        {
+            originalAnchoredPosition = newAnchoredPos;
+            if (!IsBeingDragged && !isDroppedOnStation && rectTransform != null)
+            {
+                rectTransform.anchoredPosition = newAnchoredPos;
+            }
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (isDroppedOnStation) return;

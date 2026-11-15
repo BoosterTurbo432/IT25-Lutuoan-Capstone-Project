@@ -20,7 +20,17 @@ namespace CookingSystem
     {
         public const string SaveFileName = "savegame.json";
 
-        public static string SaveFilePath => Path.Combine(Application.persistentDataPath, SaveFileName);
+        private static string GetSaveDirectory()
+        {
+            string dir = Application.persistentDataPath;
+            if (!string.IsNullOrWhiteSpace(dir)) return dir;
+
+            // Fallback if PlayerSettings.productName or companyName had invalid characters / trailing spaces
+            string fallback = Path.Combine(Path.GetTempPath(), "IT25_Lutuoan");
+            return fallback;
+        }
+
+        public static string SaveFilePath => Path.Combine(GetSaveDirectory(), SaveFileName);
         private static string BackupFilePath => SaveFilePath + ".bak";
         private static string TempFilePath => SaveFilePath + ".tmp";
 
@@ -77,10 +87,15 @@ namespace CookingSystem
                 Current.lastSavedAtUtc = DateTime.UtcNow.ToString("o");
                 string json = JsonUtility.ToJson(Current, prettyPrint: true);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath));
+                string savePath = SaveFilePath;
+                string dir = Path.GetDirectoryName(savePath);
+                if (!string.IsNullOrWhiteSpace(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
                 File.WriteAllText(TempFilePath, json);                                      // 1. Write the full file first.
-                if (File.Exists(SaveFilePath)) File.Copy(SaveFilePath, BackupFilePath, true); // 2. Keep the last good save.
-                File.Copy(TempFilePath, SaveFilePath, true);                                // 3. Swap in the new save.
+                if (File.Exists(savePath)) File.Copy(savePath, BackupFilePath, true);       // 2. Keep the last good save.
+                File.Copy(TempFilePath, savePath, true);                                    // 3. Swap in the new save.
                 File.Delete(TempFilePath);
 
                 Saved?.Invoke(Current);

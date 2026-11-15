@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 15003, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Web - Desktop - Development
+  m_Name: Web - Mobile - Development (1)
   m_EditorClassIdentifier: UnityEditor.dll::UnityEditor.Build.Profile.BuildProfile
   m_AssetVersion: 2
   m_BuildTarget: 20
   m_Subtarget: 0
   m_PlatformId: 84a3bb9e7420477f885e98145999eb20
   m_PlatformBuildProfile:
-    rid: 2151077493499494724
+    rid: 2965369951491981413
   m_ActivePlatformGuid: 
   m_AdditionalPlatformBuildSettings: []
   m_OverrideGlobalSceneList: 0
@@ -37,8 +37,8 @@ MonoBehaviour:
     - line: '|   targetDevice: 2'
     - line: '|   useOnDemandResources: 0'
     - line: '|   accelerometerFrequency: 60'
-    - line: '|   companyName: DefaultCompany'
-    - line: '|   productName: Lutuoan 1.0'
+    - line: '|   companyName: Group IT25 Production'
+    - line: '|   productName: ''Lutuoan '''
     - line: '|   defaultCursor: {instanceID: 0}'
     - line: '|   cursorHotspot: {x: 0, y: 0}'
     - line: '|   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}'
@@ -367,7 +367,9 @@ MonoBehaviour:
     - line: '|   openGLRequireES31: 0'
     - line: '|   openGLRequireES31AEP: 0'
     - line: '|   openGLRequireES32: 0'
-    - line: '|   m_TemplateCustomTags: {}'
+    - line: '|   m_TemplateCustomTags:'
+    - line: '|     PRIMARY_DATA_FILES: '
+    - line: '|     SECONDARY_DATA_FILES: '
     - line: '|   mobileMTRendering:'
     - line: '|     Android: 1'
     - line: '|     iPhone: 1'
@@ -377,7 +379,10 @@ MonoBehaviour:
     - line: '|   m_BuildTargetGroupLightmapSettings: []'
     - line: '|   m_BuildTargetGroupLoadStoreDebugModeSettings: []'
     - line: '|   m_BuildTargetNormalMapEncoding: []'
-    - line: '|   m_BuildTargetDefaultTextureCompressionFormat: []'
+    - line: '|   m_BuildTargetDefaultTextureCompressionFormat:'
+    - line: '|   - serializedVersion: 3'
+    - line: '|     m_BuildTarget: WebGL'
+    - line: '|     m_Formats: 05000000i'
     - line: '|   playModeTestRunnerEnabled: 0'
     - line: '|   runPlayModeTestAsEditModeTest: 0'
     - line: '|   actionOnDotNetUnhandledException: 1'
@@ -673,8 +678,8 @@ MonoBehaviour:
     - line: '|   editorAssembliesCompatibilityLevel: 1'
     - line: '|   m_RenderingPath: 1'
     - line: '|   m_MobileRenderingPath: 1'
-    - line: '|   metroPackageName: Lutuoan 1.0'
-    - line: '|   metroPackageVersion: '
+    - line: '|   metroPackageName: Lutuoan1.0'
+    - line: '|   metroPackageVersion: 1.0.0.0'
     - line: '|   metroCertificatePath: '
     - line: '|   metroCertificatePassword: '
     - line: '|   metroCertificateSubject: '
@@ -682,7 +687,7 @@ MonoBehaviour:
     - line: '|   metroCertificateNotAfter: 0000000000000000'
     - line: '|   metroApplicationDescription: Lutuoan 1.0'
     - line: '|   wsaImages: {}'
-    - line: '|   metroTileShortName: '
+    - line: '|   metroTileShortName: Lutuoan 1.0'
     - line: '|   metroTileShowName: 0'
     - line: '|   metroMediumTileShowName: 0'
     - line: '|   metroLargeTileShowName: 0'
@@ -773,7 +778,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 2151077493499494724
+    - rid: 2965369951491981413
       type: {class: WebGLPlatformSettings, ns: UnityEditor.WebGL, asm: UnityEditor.WebGL.Extensions}
       data:
         m_Development: 1
@@ -794,4 +799,4 @@ MonoBehaviour:
         m_CodeOptimization: 0
         m_WebGLClientBrowserPath: 
         m_WebGLClientBrowserType: 0
-        m_WebGLTextureSubtarget: 1
+        m_WebGLTextureSubtarget: 4

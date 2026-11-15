@@ -39,6 +39,10 @@ namespace CookingSystem.UI
         [SerializeField] private Color pressedColor = new Color(0.9f, 0.78f, 0.55f, 1f);
         [SerializeField] private Color disabledColor = new Color(0.65f, 0.65f, 0.65f, 0.6f);
 
+        [Header("Sprite Swap (Optional)")]
+        [SerializeField] private Sprite normalSprite;
+        [SerializeField] private Sprite pressedSprite;
+
         [Header("Animation")]
         [Tooltip("Higher = snappier. Values around 10-20 feel good.")]
         [SerializeField, Min(1f)] private float animationSpeed = 14f;
@@ -204,6 +208,7 @@ namespace CookingSystem.UI
 
                 scaleTarget.localScale = Vector3.Lerp(scaleTarget.localScale, targetScale, t);
                 if (ShouldTint) tintTarget.color = Color.Lerp(tintTarget.color, targetColor, t);
+                UpdateSpriteState();
 
                 bool scaleDone = (scaleTarget.localScale - targetScale).sqrMagnitude < ScaleEpsilonSqr;
                 bool colorDone = !ShouldTint || IsColorClose(tintTarget.color, targetColor);
@@ -227,6 +232,17 @@ namespace CookingSystem.UI
             GetTargetState(out Vector3 targetScale, out Color targetColor);
             scaleTarget.localScale = targetScale;
             if (ShouldTint) tintTarget.color = targetColor;
+            UpdateSpriteState();
+        }
+
+        private void UpdateSpriteState()
+        {
+            if (normalSprite == null || pressedSprite == null) return;
+            if (tintTarget is Image img)
+            {
+                bool isPressed = selectable != null && selectable.interactable && isPointerDown && isPointerInside;
+                img.sprite = isPressed ? pressedSprite : normalSprite;
+            }
         }
 
         private void PlayHoverSound()

@@ -13,36 +13,32 @@ namespace CookingSystem.EditorTools
 {
     /// <summary>
     /// Automated builder for the dedicated Loading Screen scene (Tools > Loading Screen > Build Loading Screen UI).
-    /// Constructs a cozy, lightweight, WebGL-optimized loading screen hierarchy with
-    /// progress bar, rotating educational cooking tips, dynamic culinary statuses, and camera setup.
+    /// Constructs a dark chalkboard-style loading screen matching the visual reference with
+    /// starry LOADING backdrop, flanking food illustrations, hanging kitchen utensils,
+    /// yellow-on-green pill progress bar, and rotating culinary tips.
     /// Safe to execute repeatedly.
     /// </summary>
     public static class LoadingScreenBuilder
     {
         public const string LoadingScenePath = "Assets/Scenes/loadingscreen.unity";
-        private const string FontPath = "Assets/Fonts/Stay With Me SDF.asset";
-        private const string IconPath = "Assets/CozyUI/Icons/IconsFlat_16px/IconFlat1.png";
-        private const string ContainerPath = "Assets/CozyUI/Containers/DoubleStripeContainer/DoubleStripeContainer1_cream.png";
-        private const string ProgressFillPath = "Assets/CozyUI/ProgressBars/ProgressBar/ProgressBarFill1_wood.png";
 
-        // Warm culinary palette
-        private static readonly Color DeepBlueBg = Hex("273B5B");
-        private static readonly Color CardColor = Hex("FFF8EE");
-        private static readonly Color IconFrameColor = Hex("EADCC9");
-        private static readonly Color TitleColor = Hex("4A2E1B");
-        private static readonly Color SubtitleColor = Hex("8C7058");
-        private static readonly Color StatusColor = Hex("5C3E28");
-        private static readonly Color PrimaryAmber = Hex("F4A259");
-        private static readonly Color TrackColor = Hex("E5D5C0");
-        private static readonly Color TipCardColor = Hex("F5ECE0");
-        private static readonly Color TipTextColor = Hex("3B2A1A");
+        private const string BackgroundPath = "Assets/Images/loadingscreen.png";
+        private const string FoodDecorPath = "Assets/Images/Food.png";
+        private const string UtensilsPath = "Assets/Images/utensils.png";
+        private const string PillSpritePath = "Assets/Images/ProgressBarPill.png";
+        private const string TipFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
 
-        private static Sprite roundedSprite;
+        // Palette matched to the loading screen visual reference
+        private static readonly Color CameraBgColor = Hex("0A0C10");
+        private static readonly Color TrackGreen = Hex("568C34");
+        private static readonly Color FillYellow = Hex("ECB71B");
+
         private static Sprite backgroundSprite;
-        private static Sprite iconSprite;
-        private static Sprite containerSprite;
-        private static Sprite progressFillSprite;
-        private static TMP_FontAsset font;
+        private static Sprite foodDecorSprite;
+        private static Sprite utensilsSprite;
+        private static Sprite pillSprite;
+        private static Sprite fallbackRoundedSprite;
+        private static TMP_FontAsset tipFont;
 
         [MenuItem("Tools/Loading Screen/Build Loading Screen UI")]
         public static void BuildFromMenu()
@@ -94,7 +90,7 @@ namespace CookingSystem.EditorTools
             cam.orthographic = true;
             cam.orthographicSize = 5f;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = DeepBlueBg;
+            cam.backgroundColor = CameraBgColor;
             cam.depth = -1f;
             cameraGo.AddComponent<AudioListener>();
             cameraGo.AddComponent<UniversalAdditionalCameraData>();
@@ -126,86 +122,46 @@ namespace CookingSystem.EditorTools
             CanvasGroup rootCg = rootContainer.gameObject.AddComponent<CanvasGroup>();
             rootCg.alpha = 1f;
 
-            // 5. Background Overlay
-            RectTransform bgRect = CreateRect("BackgroundOverlay", rootContainer);
+            // 5. Starry Chalkboard "LOADING" Background
+            RectTransform bgRect = CreateRect("Background", rootContainer);
             Stretch(bgRect);
-            Image bgImg = AddImage(bgRect, new Color(0.12f, 0.18f, 0.28f, 0.95f), backgroundSprite);
+            Image bgImg = AddImage(bgRect, Color.white, backgroundSprite);
+            bgImg.preserveAspect = false;
             bgImg.raycastTarget = false;
 
-            // 6. Central Card Window
-            RectTransform cardRect = CreateRect("LoadingCard", rootContainer);
-            cardRect.sizeDelta = new Vector2(1040f, 680f);
-            Image cardImg = AddImage(cardRect, CardColor, containerSprite ?? roundedSprite, 0.35f);
-            cardImg.raycastTarget = false;
-            AddShadow(cardRect.gameObject, new Vector2(0f, -10f), 0.35f);
+            // 6. Flanking Food Illustrations (egg, bok choy, shrimp, dish)
+            RectTransform foodRect = CreateRect("FoodDecor", rootContainer);
+            Stretch(foodRect);
+            Image foodImg = AddImage(foodRect, Color.white, foodDecorSprite);
+            foodImg.preserveAspect = false;
+            foodImg.raycastTarget = false;
 
-            // 7. Cooking Icon with Bobbing Motion
-            RectTransform iconFrame = CreateRect("CookingIconFrame", cardRect);
-            iconFrame.anchoredPosition = new Vector2(0f, 195f);
-            iconFrame.sizeDelta = new Vector2(100f, 100f);
-            Image frameImg = AddImage(iconFrame, IconFrameColor, roundedSprite, 0.5f);
-            frameImg.raycastTarget = false;
+            // 7. Hanging Kitchen Utensils Rack (Top Center)
+            RectTransform utensilsRect = CreateRect("Utensils", rootContainer);
+            utensilsRect.anchoredPosition = new Vector2(0f, 348f);
+            utensilsRect.sizeDelta = new Vector2(780f, 440f);
+            Image utensilsImg = AddImage(utensilsRect, Color.white, utensilsSprite);
+            utensilsImg.preserveAspect = true;
+            utensilsImg.raycastTarget = false;
 
-            RectTransform iconRect = CreateRect("CookingIcon", iconFrame);
-            Stretch(iconRect);
-            iconRect.offsetMin = new Vector2(14f, 14f);
-            iconRect.offsetMax = new Vector2(-14f, -14f);
-            Image iconImg = AddImage(iconRect, PrimaryAmber, iconSprite);
-            iconImg.raycastTarget = false;
+            // 8. Pill Progress Bar (Yellow fill over Green track)
+            Sprite barSprite = pillSprite != null ? pillSprite : fallbackRoundedSprite;
+            float barPpu = pillSprite != null ? 2.625f : 0.22f;
 
-            // 8. Title & Subtitle Header
-            RectTransform titleRect = CreateRect("TitleText", cardRect);
-            titleRect.anchoredPosition = new Vector2(0f, 105f);
-            titleRect.sizeDelta = new Vector2(800f, 65f);
-            TextMeshProUGUI titleTmp = titleRect.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) titleTmp.font = font;
-            titleTmp.text = "Lutuoan";
-            titleTmp.fontSize = 58f;
-            titleTmp.color = TitleColor;
-            titleTmp.alignment = TextAlignmentOptions.Center;
-            titleTmp.raycastTarget = false;
+            RectTransform barContainer = CreateRect("ProgressBar", rootContainer);
+            barContainer.anchoredPosition = new Vector2(0f, -180f);
+            barContainer.sizeDelta = new Vector2(1210f, 48f);
 
-            RectTransform subtitleRect = CreateRect("SubtitleText", cardRect);
-            subtitleRect.anchoredPosition = new Vector2(0f, 60f);
-            subtitleRect.sizeDelta = new Vector2(800f, 35f);
-            TextMeshProUGUI subtitleTmp = subtitleRect.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) subtitleTmp.font = font;
-            subtitleTmp.text = "Educational Cooking Game";
-            subtitleTmp.fontSize = 24f;
-            subtitleTmp.color = SubtitleColor;
-            subtitleTmp.alignment = TextAlignmentOptions.Center;
-            subtitleTmp.raycastTarget = false;
-
-            // 9. Status Message Text
-            RectTransform statusRect = CreateRect("StatusText", cardRect);
-            statusRect.anchoredPosition = new Vector2(0f, -5f);
-            statusRect.sizeDelta = new Vector2(800f, 38f);
-            TextMeshProUGUI statusTmp = statusRect.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) statusTmp.font = font;
-            statusTmp.text = "Preheating kitchen stoves...";
-            statusTmp.fontSize = 28f;
-            statusTmp.color = StatusColor;
-            statusTmp.alignment = TextAlignmentOptions.Center;
-            statusTmp.raycastTarget = false;
-
-            // 10. Progress Bar Container
-            RectTransform barContainer = CreateRect("ProgressBar", cardRect);
-            barContainer.anchoredPosition = new Vector2(0f, -60f);
-            barContainer.sizeDelta = new Vector2(780f, 32f);
-
-            // Track Background
-            Image trackImg = AddImage(barContainer, TrackColor, roundedSprite, 0.5f);
+            Image trackImg = AddImage(barContainer, TrackGreen, barSprite, barPpu);
+            trackImg.type = Image.Type.Sliced;
             trackImg.raycastTarget = false;
 
-            // Fill Area & Fill Image
             RectTransform fillArea = CreateRect("Fill Area", barContainer);
             Stretch(fillArea);
-            fillArea.offsetMin = new Vector2(4f, 4f);
-            fillArea.offsetMax = new Vector2(-4f, -4f);
 
             RectTransform fillRect = CreateRect("Fill", fillArea);
             Stretch(fillRect);
-            Image fillImg = AddImage(fillRect, PrimaryAmber, progressFillSprite ?? roundedSprite, 0.5f);
+            Image fillImg = AddImage(fillRect, FillYellow, barSprite, barPpu);
             fillImg.type = Image.Type.Sliced;
             fillImg.raycastTarget = false;
 
@@ -214,72 +170,54 @@ namespace CookingSystem.EditorTools
             slider.targetGraphic = fillImg;
             slider.minValue = 0f;
             slider.maxValue = 1f;
-            slider.value = 0f;
+            slider.value = 0.41f;
             slider.interactable = false;
             slider.transition = Selectable.Transition.None;
 
-            // Percentage Text
-            RectTransform percentRect = CreateRect("PercentText", cardRect);
-            percentRect.anchoredPosition = new Vector2(0f, -100f);
-            percentRect.sizeDelta = new Vector2(200f, 32f);
-            TextMeshProUGUI percentTmp = percentRect.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) percentTmp.font = font;
-            percentTmp.text = "0%";
-            percentTmp.fontSize = 26f;
-            percentTmp.color = TitleColor;
-            percentTmp.alignment = TextAlignmentOptions.Center;
-            percentTmp.raycastTarget = false;
+            // 9. "Tip:" Header
+            RectTransform tipHeaderRect = CreateRect("TipHeader", rootContainer);
+            tipHeaderRect.anchoredPosition = new Vector2(0f, -255f);
+            tipHeaderRect.sizeDelta = new Vector2(400f, 64f);
+            TextMeshProUGUI tipHeaderTmp = tipHeaderRect.gameObject.AddComponent<TextMeshProUGUI>();
+            if (tipFont != null) tipHeaderTmp.font = tipFont;
+            tipHeaderTmp.text = "Tip:";
+            tipHeaderTmp.fontSize = 52f;
+            tipHeaderTmp.fontStyle = FontStyles.Bold;
+            tipHeaderTmp.color = Color.white;
+            tipHeaderTmp.alignment = TextAlignmentOptions.Center;
+            tipHeaderTmp.raycastTarget = false;
 
-            // 11. Educational Culinary Tip Card
-            RectTransform tipCard = CreateRect("TipCard", cardRect);
-            tipCard.anchoredPosition = new Vector2(0f, -200f);
-            tipCard.sizeDelta = new Vector2(880f, 130f);
-            Image tipCardImg = AddImage(tipCard, TipCardColor, roundedSprite, 0.3f);
-            tipCardImg.raycastTarget = false;
-
-            // Badge "CHEF'S TIP"
-            RectTransform badgeRect = CreateRect("TipBadge", tipCard);
-            badgeRect.anchoredPosition = new Vector2(0f, 54f);
-            badgeRect.sizeDelta = new Vector2(170f, 30f);
-            AddImage(badgeRect, PrimaryAmber, roundedSprite, 0.5f);
-
-            RectTransform badgeTextRect = CreateRect("TipBadgeText", badgeRect);
-            Stretch(badgeTextRect);
-            TextMeshProUGUI badgeTmp = badgeTextRect.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) badgeTmp.font = font;
-            badgeTmp.text = "CHEF'S TIP";
-            badgeTmp.fontSize = 18f;
-            badgeTmp.color = Color.white;
-            badgeTmp.alignment = TextAlignmentOptions.Center;
-            badgeTmp.raycastTarget = false;
-
-            // Tip Content Text with CanvasGroup
-            RectTransform tipContent = CreateRect("TipContent", tipCard);
-            tipContent.anchoredPosition = new Vector2(0f, -10f);
-            tipContent.sizeDelta = new Vector2(820f, 85f);
+            // 10. Rotating Culinary Tip Content
+            RectTransform tipContent = CreateRect("TipContent", rootContainer);
+            tipContent.anchoredPosition = new Vector2(0f, -395f);
+            tipContent.sizeDelta = new Vector2(1120f, 150f);
             CanvasGroup tipCg = tipContent.gameObject.AddComponent<CanvasGroup>();
 
             TextMeshProUGUI tipTmp = tipContent.gameObject.AddComponent<TextMeshProUGUI>();
-            if (font != null) tipTmp.font = font;
-            tipTmp.text = "Mise en place: Preparing ingredients before cooking ensures an even, stress-free meal!";
-            tipTmp.fontSize = 22f;
-            tipTmp.color = TipTextColor;
-            tipTmp.alignment = TextAlignmentOptions.Center;
+            if (tipFont != null) tipTmp.font = tipFont;
+            tipTmp.text = "Carinderia Fun Fact — Carinderias are nicknamed 'turo-turo' ('point-point') because diners simply point at the glass-covered trays of cooked ulam!";
+            tipTmp.fontSize = 24f;
+            tipTmp.color = Color.white;
+            tipTmp.alignment = TextAlignmentOptions.Top;
+            tipTmp.lineSpacing = 6f;
             tipTmp.wordWrappingRatios = 0.4f;
             tipTmp.textWrappingMode = TextWrappingModes.Normal;
             tipTmp.raycastTarget = false;
 
-            // 12. Attach & Wire LoadingScreenController
+            // 11. Attach & Wire LoadingScreenController
             LoadingScreenController controller = canvasGo.AddComponent<LoadingScreenController>();
             var so = new SerializedObject(controller);
             SetRef(so, "rootCanvasGroup", rootCg);
             SetRef(so, "progressBar", slider);
             SetRef(so, "progressFillImage", fillImg);
-            SetRef(so, "percentText", percentTmp);
-            SetRef(so, "statusText", statusTmp);
+            SetRef(so, "percentText", null);
+            SetRef(so, "statusText", null);
             SetRef(so, "tipText", tipTmp);
             SetRef(so, "tipCanvasGroup", tipCg);
-            SetRef(so, "cookingIcon", iconFrame);
+            SetRef(so, "cookingIcon", utensilsRect);
+            so.FindProperty("iconBobAmplitude").floatValue = 5f;
+            so.FindProperty("iconBobSpeed").floatValue = 2.5f;
+            so.FindProperty("fadeOutDuration").floatValue = 0f;
             so.FindProperty("progressSmoothingSpeed").floatValue = 2.4f;
             so.FindProperty("minBootDisplayTime").floatValue = 0.9f;
             so.FindProperty("minTransitionDisplayTime").floatValue = 0.65f;
@@ -292,18 +230,25 @@ namespace CookingSystem.EditorTools
 
         private static void LoadResources()
         {
-            roundedSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-            backgroundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+            fallbackRoundedSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            backgroundSprite = LoadFirstSprite(BackgroundPath);
+            foodDecorSprite = LoadFirstSprite(FoodDecorPath);
+            utensilsSprite = LoadFirstSprite(UtensilsPath);
+            pillSprite = LoadFirstSprite(PillSpritePath);
 
-            iconSprite = AssetDatabase.LoadAssetAtPath<Sprite>(IconPath);
-            containerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ContainerPath);
-            progressFillSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ProgressFillPath);
-
-            font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
-            if (font == null)
+            tipFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TipFontPath);
+            if (tipFont == null)
             {
-                font = TMP_Settings.defaultFontAsset;
+                tipFont = TMP_Settings.defaultFontAsset;
             }
+        }
+
+        private static Sprite LoadFirstSprite(string assetPath)
+        {
+            Sprite direct = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            if (direct != null) return direct;
+
+            return AssetDatabase.LoadAllAssetsAtPath(assetPath).OfType<Sprite>().FirstOrDefault();
         }
 
         private static RectTransform CreateRect(string name, Transform parent)
@@ -334,14 +279,6 @@ namespace CookingSystem.EditorTools
                 image.pixelsPerUnitMultiplier = pixelsPerUnitMultiplier;
             }
             return image;
-        }
-
-        private static void AddShadow(GameObject go, Vector2 offset, float alpha)
-        {
-            Shadow shadow = go.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, alpha);
-            shadow.effectDistance = offset;
-            shadow.useGraphicAlpha = true;
         }
 
         private static void SetRef(SerializedObject so, string propertyName, Object value)

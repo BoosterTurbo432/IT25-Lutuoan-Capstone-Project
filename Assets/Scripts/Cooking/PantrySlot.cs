@@ -15,6 +15,8 @@ namespace CookingSystem
         [Tooltip("Time in seconds to restock a new ingredient after one is consumed.")]
         [SerializeField] private float restockDuration = 3f;
 
+        [SerializeField] private Vector2 spawnAnchoredPosition = new Vector2(0f, 10f);
+
         [Header("Visual Feedback")]
         [Tooltip("Optional UI fill image showing cooldown progress (0 to 1).")]
         [SerializeField] private Image cooldownOverlay;
@@ -107,6 +109,15 @@ namespace CookingSystem
             restockCoroutine = null;
         }
 
+        public void SetSpawnAnchoredPosition(Vector2 anchoredPosition)
+        {
+            spawnAnchoredPosition = anchoredPosition;
+            if (currentIngredient != null)
+            {
+                currentIngredient.SetRestPosition(anchoredPosition);
+            }
+        }
+
         private void SpawnIngredient()
         {
             if (ingredientPrefab == null) return;
@@ -117,7 +128,7 @@ namespace CookingSystem
             var rect = newObj.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.anchoredPosition = new Vector2(0, 10);
+                rect.anchoredPosition = spawnAnchoredPosition;
                 rect.localScale = Vector3.one;
             }
 

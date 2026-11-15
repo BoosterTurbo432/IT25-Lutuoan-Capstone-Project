@@ -199,7 +199,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Role / Title
+  m_text: QA Tester
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -502,6 +502,8 @@ MonoBehaviour:
   hoverColor: {r: 0.9676471, g: 0.7264706, b: 0.5117647, a: 1}
   pressedColor: {r: 0.81333333, g: 0.54, b: 0.29666668, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -997,6 +999,8 @@ MonoBehaviour:
   hoverColor: {r: 0.92941177, g: 0.5764706, b: 0.4882353, a: 1}
   pressedColor: {r: 0.77000004, g: 0.37, b: 0.27, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -1155,8 +1159,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 430, y: 237.38}
-  m_SizeDelta: {x: 960, y: 540}
+  m_AnchoredPosition: {x: 0, y: 250}
+  m_SizeDelta: {x: 780, y: 440}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &89088829
 MonoBehaviour:
@@ -2078,6 +2082,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -2270,6 +2276,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -2691,6 +2699,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -3666,7 +3676,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Role / Title
+  m_text: System Architecture & Backend
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -3921,6 +3931,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -4455,8 +4467,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -663, y: 14}
-  m_SizeDelta: {x: 457.9037, y: 93.2306}
+  m_AnchoredPosition: {x: 0, y: -45}
+  m_SizeDelta: {x: 460, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &826150237
 MonoBehaviour:
@@ -4522,7 +4534,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -4531,7 +4543,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 0.35
 --- !u!222 &826150239
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4558,9 +4570,11 @@ MonoBehaviour:
   useColorTint: 1
   tintTarget: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
-  pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
+  hoverColor: {r: 1, g: 0.9019608, b: 0.7607843, a: 1}
+  pressedColor: {r: 0.9019608, g: 0.72156864, b: 0.6117647, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
+  pressedSprite: {fileID: -3513223139697873251, guid: d314a94be9352244db754db724e3e549, type: 3}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -4640,6 +4654,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -4843,7 +4859,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Role / Title
+  m_text: Document Lead
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -5286,7 +5302,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 4}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1020559954
@@ -5318,8 +5334,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4293851391
+  m_fontColor: {r: 1, g: 0.972549, b: 0.93333334, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -5336,8 +5352,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 46
+  m_fontSizeBase: 46
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -5469,7 +5485,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Member 2
+  m_text: Rojane Althea Brito
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -6056,8 +6072,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -663, y: -118.63464}
-  m_SizeDelta: {x: 457.9037, y: 93.2306}
+  m_AnchoredPosition: {x: 0, y: -165}
+  m_SizeDelta: {x: 460, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1156801624
 MonoBehaviour:
@@ -6123,7 +6139,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6132,7 +6148,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 0.35
 --- !u!222 &1156801626
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6159,9 +6175,11 @@ MonoBehaviour:
   useColorTint: 1
   tintTarget: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
-  pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
+  hoverColor: {r: 1, g: 0.9019608, b: 0.7607843, a: 1}
+  pressedColor: {r: 0.9019608, g: 0.72156864, b: 0.6117647, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
+  pressedSprite: {fileID: -3513223139697873251, guid: d314a94be9352244db754db724e3e549, type: 3}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -6329,6 +6347,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -6493,7 +6513,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 80, y: 40}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1208830751
 MonoBehaviour:
@@ -6515,7 +6535,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -3434864392180616657, guid: 3130f08f82127e2488bcb9fc1358cbcf, type: 3}
+  m_Sprite: {fileID: 674021300000123456, guid: 674ac2f592553633a1b2c3d4e5f60123, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6552,92 +6572,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1208830749}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 52b59209dcc7a814b8276b5c9ac82aff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CookingSystem.UI.UIAnimatedBackground
-  frames:
-  - {fileID: -242000123418457945, guid: d44ca4ad09f45c748ba56531d0bdcaf4, type: 3}
-  - {fileID: 5225803461279466427, guid: cd5d59ccf7df41f4997df40c5247d441, type: 3}
-  - {fileID: -909656990293525976, guid: 2fdbd318aab10aa4681e2247f054b20e, type: 3}
-  - {fileID: -4131522981888264966, guid: f580331ec9aa38d4bb80973996834fa9, type: 3}
-  - {fileID: 7649973422418929207, guid: d7fb3f26554bc50488abab0a204a759c, type: 3}
-  - {fileID: -9144262371786858320, guid: 89b6d3bcc8a0fa54eb63dc8e5a4c5b3d, type: 3}
-  - {fileID: 2320547255588172187, guid: 411c3d00acc2c654a96cad0a19e3dad3, type: 3}
-  - {fileID: -3946545622171264602, guid: e71dd9b7abd4cf84fa142f040c62e8f7, type: 3}
-  - {fileID: -5244937019859166889, guid: 811accb2a57718a4f9d0e7f5c971731b, type: 3}
-  - {fileID: -7591141937643820153, guid: 17bc00b92921c274086fc269ed77c873, type: 3}
-  - {fileID: -1764566472387802501, guid: 86976481d15a54b4485eb4385c92b049, type: 3}
-  - {fileID: -5043443864825405457, guid: 950476d51d15315418246d9563f14b9a, type: 3}
-  - {fileID: 6822838048729013937, guid: e62fb2add4857574399cfefb2292d4f2, type: 3}
-  - {fileID: 7603369990317305835, guid: 5bcc7899c248afd4f9f9de2b612157c9, type: 3}
-  - {fileID: -4815964372830574091, guid: 28d6597cc11cde543938f77eaf6f95eb, type: 3}
-  - {fileID: -7552846399927300917, guid: a356029807f4ca8429d4a2ad7bef39ee, type: 3}
-  - {fileID: -3302140496222678080, guid: 3aaf8aa6b0dd5b743bb43303e256b4f6, type: 3}
-  - {fileID: 1857419597254756005, guid: 4860cdeccea67b04586778e0fdae31f3, type: 3}
-  - {fileID: 1147126225624874535, guid: 19b1d6fa7f1ac8f4e98b0e65a07b61f3, type: 3}
-  - {fileID: -2262314875336622026, guid: 84a1cfeb1f5108a4cb061e058d5cfe5f, type: 3}
-  - {fileID: -4647757219019306275, guid: 1ea28d9dabbb05f40896214c26f3c178, type: 3}
-  - {fileID: -2605610582749685665, guid: 2b5e6a1fc9168864c94c3aeb1b36be91, type: 3}
-  - {fileID: 4327804509368645545, guid: 2ac664afdb5032240b5279312e853581, type: 3}
-  - {fileID: -8712416449926960277, guid: 61e8a98095d90a841b24eab844ee0ad5, type: 3}
-  - {fileID: 6926554960901361902, guid: 93a40ca1f0e76f843b17829dec71a2b8, type: 3}
-  - {fileID: -7892945061939307684, guid: 9d94534a10aa7ca4aa3bdf5134a287f9, type: 3}
-  - {fileID: -4575029256850706382, guid: 029b5dd2ca505b042a2e10ae11441652, type: 3}
-  - {fileID: 5035924443190566869, guid: feec63134dd98e942b3d859f4b1f193e, type: 3}
-  - {fileID: 2491955362753134861, guid: 13476fcb890435d4fa1dfdfb65f7cfea, type: 3}
-  - {fileID: -3775311112448305123, guid: 995fc7a7a9e8e084299c4089ac7f423a, type: 3}
-  - {fileID: -1159765254082639744, guid: f32fc9aa490a2784db016aad7e173411, type: 3}
-  - {fileID: 186492931836799587, guid: 46de1b18466687c4fa438103c9b3b136, type: 3}
-  - {fileID: -3071535198136193512, guid: 3453ac96f2ee4954e99d88e1589966a9, type: 3}
-  - {fileID: -36938836305460636, guid: 05f9b74f56f18914f9ef88dbcc32d061, type: 3}
-  - {fileID: -8513552108843604742, guid: 3f0ae557ff0f8b84dbd1c7557a7cf70d, type: 3}
-  - {fileID: -2612086756096039591, guid: d740eb50121aff1428463b9a10151573, type: 3}
-  - {fileID: 4702280721916659288, guid: 8edfe5569390136408786a4a3fc86514, type: 3}
-  - {fileID: 8486585941215427018, guid: bd054be4bb4b96943a110b3320ae1e9d, type: 3}
-  - {fileID: -3547995912321210606, guid: d8e7586a8fda76a4ebc6b563bff02a82, type: 3}
-  - {fileID: 226969810942562429, guid: 39cb1eb4d00813d43b6886f9d389af99, type: 3}
-  - {fileID: -684436047711138806, guid: ebdeb5c42673ef143a6616ed1fc2e98a, type: 3}
-  - {fileID: 3790238502394849455, guid: 1f0d944aacadce74193bd7dd5cc2657d, type: 3}
-  - {fileID: -2794437372092385962, guid: 5d23f74a2a470864896e3bc71b99b0e4, type: 3}
-  - {fileID: 8711274423657098645, guid: 449381e218a1e4046a28de1101952882, type: 3}
-  - {fileID: -5204288372162762153, guid: 4b8f1fc95048d2c42bbf5237f71aad0d, type: 3}
-  - {fileID: -6795605364205541400, guid: b2c4347379b58cd47b4404a610594393, type: 3}
-  - {fileID: -3822732403773305519, guid: bffb3e6acbbaab04384a05399a086f7f, type: 3}
-  - {fileID: -8671924488701509391, guid: ef54c6d1ee74d624eba3d18f4242a466, type: 3}
-  - {fileID: 470394180952292549, guid: 6df65fc8a17fada41b2bd6d5dd77a04a, type: 3}
-  - {fileID: -8430455800701003678, guid: 8df1ab8a5abd5f148a17debb52ab044c, type: 3}
-  - {fileID: 1766842134419811314, guid: d04ec0112921ecf47b867b05b5e136c3, type: 3}
-  - {fileID: 9075316153887686793, guid: 4a67ffdb8e397f44297e441005796fd8, type: 3}
-  - {fileID: 2767463877963279447, guid: 3177a099bc7d3b14ca4a017e2a3bb331, type: 3}
-  - {fileID: 2219214137564743551, guid: 299a32e9226aca845bb9ee9805f69957, type: 3}
-  - {fileID: -5435307690271716950, guid: 7b603e8274db1054fa19f8bd20514aa8, type: 3}
-  - {fileID: 8947374206840491680, guid: 86f6b21f94884f14db8aefed6d62519a, type: 3}
-  - {fileID: -3214944205338954278, guid: 742cf955cb37de34f8521f7b8f89b1c3, type: 3}
-  - {fileID: -770928719190685118, guid: 1c7d2d8c743c2904dad38e40e8b06c40, type: 3}
-  - {fileID: 5960940815663632336, guid: 20d95bdc50022fd459e690086d0873d5, type: 3}
-  - {fileID: 7615917517075127199, guid: ef7b84f63a672d74e9e033855c6badd1, type: 3}
-  - {fileID: 9201543422433557429, guid: 1a5f28d8eadc9f244ad3b0b5808a5c4d, type: 3}
-  - {fileID: -7339701943472251659, guid: 05b489f15508d6147a0b8eca960cc9ad, type: 3}
-  - {fileID: 6514269503067381207, guid: 367693fd79bcfe54f9ffa2b2d3bb2aeb, type: 3}
-  - {fileID: -3760683172387500969, guid: 18625b95f1c40914a956e1152dcdeed0, type: 3}
-  - {fileID: 750398897266532781, guid: 77f4e4dc3d656b04692d4d17eaf722a2, type: 3}
-  - {fileID: -7375189253567639919, guid: 3908b6eb6aad77a4ca00b8ef3772c77b, type: 3}
-  - {fileID: -440228970831493339, guid: 4480841cafebcb84fb5f27684037fa38, type: 3}
-  - {fileID: 2027361439294251522, guid: 925f3f5dc78c6644e8a16474edd9af51, type: 3}
-  - {fileID: 4256883333504229399, guid: 55693fbaa39700643a4d5fba863ce2cf, type: 3}
-  - {fileID: -4844716235310192889, guid: 84c030402a4bc1f479507f1db7e0ffdf, type: 3}
-  - {fileID: 944507249059652958, guid: 0bc17e1369c7b9f49b3d124caffb9690, type: 3}
-  - {fileID: -9220615928220431979, guid: 77f43a4436b3f5549b65e0d176d95ac5, type: 3}
-  - {fileID: 5867447770445909672, guid: 09faf28103554b147bdf80bd85bcebbf, type: 3}
-  - {fileID: -9022356545867481331, guid: 61959d22400ebc74dba706a3afc9158d, type: 3}
-  - {fileID: 1341371164917673376, guid: 4a1d7c437f7adfb4180146822c77b1aa, type: 3}
+  frames: []
   framesPerSecond: 8
   startupDelay: 0.35
   loop: 1
   unscaledTime: 1
-  enableAmbientPan: 1
+  enableAmbientPan: 0
   panDistance: 25
   panSpeed: 2
 --- !u!1 &1224481322
@@ -6703,6 +6648,8 @@ MonoBehaviour:
   hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
   pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -7248,7 +7195,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 4}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1335294251
@@ -7280,8 +7227,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4293851391
+  m_fontColor: {r: 1, g: 0.972549, b: 0.93333334, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -7298,8 +7245,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 46
+  m_fontSizeBase: 46
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -8305,7 +8252,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Member 1
+  m_text: Dion Gaelle C. Subion
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -8889,6 +8836,8 @@ MonoBehaviour:
   hoverColor: {r: 0.92941177, g: 0.5764706, b: 0.4882353, a: 1}
   pressedColor: {r: 0.77000004, g: 0.37, b: 0.27, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -9335,7 +9284,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Member 5
+  m_text: Nikko Uy
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -10440,6 +10389,8 @@ MonoBehaviour:
   hoverColor: {r: 0.9676471, g: 0.7264706, b: 0.5117647, a: 1}
   pressedColor: {r: 0.81333333, g: 0.54, b: 0.29666668, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 0}
+  pressedSprite: {fileID: 0}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -10803,7 +10754,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Member 3
+  m_text: Rachel Ann Rebucan
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -11198,7 +11149,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Role / Title
+  m_text: Project Lead/ 3D Artist on Assets
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -11490,7 +11441,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 4}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2032433478
@@ -11522,8 +11473,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4293851391
+  m_fontColor: {r: 1, g: 0.972549, b: 0.93333334, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -11540,8 +11491,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 46
+  m_fontSizeBase: 46
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -11708,8 +11659,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -663, y: -412}
-  m_SizeDelta: {x: 457.9037, y: 93.2306}
+  m_AnchoredPosition: {x: 0, y: -405}
+  m_SizeDelta: {x: 460, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2041092192
 MonoBehaviour:
@@ -11775,7 +11726,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -11784,7 +11735,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 0.35
 --- !u!222 &2041092194
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -11811,9 +11762,11 @@ MonoBehaviour:
   useColorTint: 1
   tintTarget: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
-  pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
+  hoverColor: {r: 1, g: 0.9019608, b: 0.7607843, a: 1}
+  pressedColor: {r: 0.9019608, g: 0.72156864, b: 0.6117647, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
+  pressedSprite: {fileID: -3513223139697873251, guid: d314a94be9352244db754db724e3e549, type: 3}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}
@@ -12144,7 +12097,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 4}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2077647002
@@ -12176,8 +12129,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4293851391
+  m_fontColor: {r: 1, g: 0.972549, b: 0.93333334, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -12194,8 +12147,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 46
+  m_fontSizeBase: 46
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -12487,7 +12440,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Role / Title
+  m_text: Frontend & UI/UX Artist
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -12647,7 +12600,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Member 4
+  m_text: Luke Acosta
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
   m_sharedMaterial: {fileID: 6287314434804869981, guid: 09bc5c88c6d121245b07b87d10121170, type: 2}
@@ -12765,8 +12718,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -663, y: -267.1819}
-  m_SizeDelta: {x: 457.9037, y: 93.2306}
+  m_AnchoredPosition: {x: 0, y: -285}
+  m_SizeDelta: {x: 460, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2101412934
 MonoBehaviour:
@@ -12832,7 +12785,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -12841,7 +12794,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 0.35
 --- !u!222 &2101412936
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -12868,9 +12821,11 @@ MonoBehaviour:
   useColorTint: 1
   tintTarget: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverColor: {r: 1, g: 0.92941177, b: 0.7490196, a: 1}
-  pressedColor: {r: 0.9019608, g: 0.78039217, b: 0.54901963, a: 1}
+  hoverColor: {r: 1, g: 0.9019608, b: 0.7607843, a: 1}
+  pressedColor: {r: 0.9019608, g: 0.72156864, b: 0.6117647, a: 1}
   disabledColor: {r: 0.65, g: 0.65, b: 0.65, a: 0.6}
+  normalSprite: {fileID: 4683746165668488350, guid: fdcedc06d5cc1b246b29ae42049c5ff8, type: 3}
+  pressedSprite: {fileID: -3513223139697873251, guid: d314a94be9352244db754db724e3e549, type: 3}
   animationSpeed: 14
   highlightOnSelect: 1
   audioSource: {fileID: 0}

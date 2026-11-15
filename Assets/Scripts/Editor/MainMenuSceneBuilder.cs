@@ -20,7 +20,10 @@ namespace CookingSystem.EditorTools
     public static class MainMenuSceneBuilder
     {
         private const string FontPath = "Assets/Fonts/Stay With Me SDF.asset";
+        private const string MainMenuBackgroundPath = "Assets/Images/MainMenuBackground.png";
         private const string GifPath = "Assets/CozyUI/Lutuoanbackground.gif";
+        private const string CozyWoodButtonNormalPath = "Assets/CozyUI/Buttons/Square/SquareButton1_wood.png";
+        private const string CozyWoodButtonPressedPath = "Assets/CozyUI/Buttons/Square/IsPressed/SquarePressedButton1_wood.png";
         private const float ContentWidth = 560f;
 
         private enum ButtonStyle { Light, Primary, Danger }
@@ -37,12 +40,17 @@ namespace CookingSystem.EditorTools
         private static readonly Color DangerColor = Hex("E76F51");
         private static readonly Color LightHoverColor = Hex("FFEDBF");
         private static readonly Color LightPressedColor = Hex("E6C78C");
+        private static readonly Color CozyButtonLabelColor = Hex("FFF8EE");
+        private static readonly Color CozyButtonHoverTint = Hex("FFE6C2");
+        private static readonly Color CozyButtonPressedTint = Hex("E6B89C");
         private static readonly Color SliderTrackColor = Hex("E8D9C4");
         private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.6f);
 
         private static Sprite roundedSprite;
         private static Sprite backgroundSprite;
         private static Sprite lutuoanBackgroundSprite;
+        private static Sprite cozyWoodButtonSprite;
+        private static Sprite cozyWoodButtonPressedSprite;
         private static Sprite knobSprite;
         private static Sprite checkmarkSprite;
         private static TMP_FontAsset font;
@@ -153,36 +161,36 @@ namespace CookingSystem.EditorTools
             RectTransform backgroundRect = bgChild != null ? (RectTransform)bgChild : CreateRect("Background", canvasRect);
             backgroundRect.name = "Background";
             Stretch(backgroundRect);
-            // Slight margin padding so ambient drift pan (+-30px) does not expose borders
-            backgroundRect.offsetMin = new Vector2(-40f, -20f);
-            backgroundRect.offsetMax = new Vector2(40f, 20f);
+            backgroundRect.offsetMin = Vector2.zero;
+            backgroundRect.offsetMax = Vector2.zero;
 
             Image bgImage = GetOrAdd<Image>(backgroundRect.gameObject);
             bgImage.sprite = lutuoanBackgroundSprite ?? backgroundSprite;
+            bgImage.type = Image.Type.Simple;
+            bgImage.preserveAspect = false;
             bgImage.color = Color.white;
             bgImage.raycastTarget = false;
 
             CanvasGroup bgCanvasGroup = GetOrAdd<CanvasGroup>(backgroundRect.gameObject);
             bgCanvasGroup.alpha = 1f;
 
-            // Remove any old/broken or duplicate animator components
+            // Remove any old/broken or duplicate animator components so static MainMenuBackground.png stays aligned
             GameObjectUtility.RemoveMonoBehavioursWithMissingScript(backgroundRect.gameObject);
             foreach (var oldAnim in backgroundRect.GetComponents<UIAnimatedBackground>())
             {
                 Object.DestroyImmediate(oldAnim);
             }
 
-            UIAnimatedBackground animBg = backgroundRect.gameObject.AddComponent<UIAnimatedBackground>();
-            Sprite[] frames = LoadBackgroundFrames();
-            if (frames != null && frames.Length > 0)
-            {
-                animBg.Frames = frames;
-                animBg.FramesPerSecond = 8f;
-            }
-
             Transform logo = RenameChild(canvasRect, "Image", "Logo");
             if (logo != null)
             {
+                RectTransform logoRect = (RectTransform)logo;
+                logoRect.anchorMin = new Vector2(0.5f, 0.5f);
+                logoRect.anchorMax = new Vector2(0.5f, 0.5f);
+                logoRect.pivot = new Vector2(0.5f, 0.5f);
+                logoRect.anchoredPosition = new Vector2(0f, 250f);
+                logoRect.sizeDelta = new Vector2(780f, 440f);
+
                 GetOrAdd<CanvasGroup>(logo.gameObject);
                 Image logoImg = logo.GetComponent<Image>();
                 if (logoImg != null)
@@ -202,10 +210,10 @@ namespace CookingSystem.EditorTools
             Stretch(menuGroup);
             CanvasGroup menuCanvasGroup = GetOrAdd<CanvasGroup>(menuGroup.gameObject);
 
-            Button startButton = AdoptMenuButton(canvasRect, menuGroup, "start", "StartCookingButton");
-            Button settingsButton = AdoptMenuButton(canvasRect, menuGroup, "settings", "SettingsButton");
-            Button creditsButton = AdoptMenuButton(canvasRect, menuGroup, "credits", "CreditsButton");
-            Button exitButton = AdoptMenuButton(canvasRect, menuGroup, "exit", "ExitButton");
+            Button startButton = AdoptMenuButton(canvasRect, menuGroup, "start", "StartCookingButton", -45f);
+            Button settingsButton = AdoptMenuButton(canvasRect, menuGroup, "settings", "SettingsButton", -165f);
+            Button creditsButton = AdoptMenuButton(canvasRect, menuGroup, "credits", "CreditsButton", -285f);
+            Button exitButton = AdoptMenuButton(canvasRect, menuGroup, "exit", "ExitButton", -405f);
 
             if (startButton == null || settingsButton == null || exitButton == null)
             {
@@ -325,7 +333,7 @@ namespace CookingSystem.EditorTools
             scaler.matchWidthOrHeight = 0.5f;
         }
 
-        private static Button AdoptMenuButton(Transform canvas, RectTransform menuGroup, string oldName, string newName)
+        private static Button AdoptMenuButton(Transform canvas, RectTransform menuGroup, string oldName, string newName, float anchoredY)
         {
             Transform target = menuGroup.Find(newName);
             if (target == null)
@@ -342,10 +350,40 @@ namespace CookingSystem.EditorTools
             Button button = target.GetComponent<Button>();
             if (button == null) return null;
 
-            button.transition = Selectable.Transition.None;
-            foreach (TMP_Text label in target.GetComponentsInChildren<TMP_Text>(true)) label.raycastTarget = false;
+            RectTransform btnRect = (RectTransform)target;
+            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRect.pivot = new Vector2(0.5f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(0f, anchoredY);
+            btnRect.sizeDelta = new Vector2(460f, 88f);
 
-            ConfigureHover(button, Color.white, LightHoverColor, LightPressedColor);
+            Image btnImage = target.GetComponent<Image>();
+            if (btnImage != null)
+            {
+                btnImage.sprite = cozyWoodButtonSprite ?? roundedSprite;
+                btnImage.type = Image.Type.Sliced;
+                btnImage.pixelsPerUnitMultiplier = 0.35f;
+                btnImage.color = Color.white;
+            }
+
+            button.transition = Selectable.Transition.None;
+            foreach (TMP_Text label in target.GetComponentsInChildren<TMP_Text>(true))
+            {
+                label.raycastTarget = false;
+                if (font != null) label.font = font;
+                label.color = CozyButtonLabelColor;
+                label.fontSize = 46f;
+                label.alignment = TextAlignmentOptions.Center;
+
+                RectTransform labelRect = label.rectTransform;
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = new Vector2(0f, 4f);
+                labelRect.offsetMax = new Vector2(0f, 4f);
+            }
+
+            ConfigureHover(button, Color.white, CozyButtonHoverTint, CozyButtonPressedTint,
+                null, 1.08f, cozyWoodButtonSprite, cozyWoodButtonPressedSprite);
             return button;
         }
 
@@ -777,7 +815,8 @@ namespace CookingSystem.EditorTools
         }
 
         private static void ConfigureHover(Selectable selectable, Color normal, Color hover, Color pressed,
-            RectTransform scaleTarget = null, float hoverScale = 1.08f)
+            RectTransform scaleTarget = null, float hoverScale = 1.08f,
+            Sprite normalSprite = null, Sprite pressedSprite = null)
         {
             UIButtonHoverEffect effect = selectable.GetComponent<UIButtonHoverEffect>();
             if (effect == null) effect = selectable.gameObject.AddComponent<UIButtonHoverEffect>();
@@ -788,6 +827,8 @@ namespace CookingSystem.EditorTools
             so.FindProperty("pressedColor").colorValue = pressed;
             so.FindProperty("hoverScale").floatValue = hoverScale;
             if (scaleTarget != null) SetRef(so, "scaleTarget", scaleTarget);
+            SetRef(so, "normalSprite", normalSprite);
+            SetRef(so, "pressedSprite", pressedSprite);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             if (selectable.targetGraphic != null) selectable.targetGraphic.color = normal;
@@ -830,8 +871,18 @@ namespace CookingSystem.EditorTools
             knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             checkmarkSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
 
-            string gifPath = ResolveBackgroundGifPath();
-            lutuoanBackgroundSprite = AssetDatabase.LoadAllAssetsAtPath(gifPath).OfType<Sprite>().FirstOrDefault();
+            EnsureNineSliceSpriteImport(CozyWoodButtonNormalPath, new Vector4(8f, 9f, 8f, 8f));
+            EnsureNineSliceSpriteImport(CozyWoodButtonPressedPath, new Vector4(8f, 8f, 8f, 8f));
+
+            cozyWoodButtonSprite = LoadSpriteAsset(CozyWoodButtonNormalPath);
+            cozyWoodButtonPressedSprite = LoadSpriteAsset(CozyWoodButtonPressedPath);
+
+            lutuoanBackgroundSprite = LoadSpriteAsset(MainMenuBackgroundPath);
+            if (lutuoanBackgroundSprite == null)
+            {
+                string gifPath = ResolveBackgroundGifPath();
+                lutuoanBackgroundSprite = AssetDatabase.LoadAllAssetsAtPath(gifPath).OfType<Sprite>().FirstOrDefault();
+            }
             if (lutuoanBackgroundSprite == null)
             {
                 Sprite[] frames = LoadBackgroundFrames();
@@ -843,6 +894,54 @@ namespace CookingSystem.EditorTools
             {
                 Debug.LogWarning($"[MainMenuSceneBuilder] Font not found at {FontPath}; using the TMP default font.");
                 font = TMP_Settings.defaultFontAsset;
+            }
+        }
+
+        private static Sprite LoadSpriteAsset(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return null;
+
+            Sprite subSprite = AssetDatabase.LoadAllAssetsAtPath(path)
+                .OfType<Sprite>()
+                .FirstOrDefault();
+            return subSprite != null ? subSprite : AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        private static void EnsureNineSliceSpriteImport(string path, Vector4 border)
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
+
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) return;
+
+            bool dirty = false;
+            if (importer.filterMode != FilterMode.Point)
+            {
+                importer.filterMode = FilterMode.Point;
+                dirty = true;
+            }
+            if (importer.spriteBorder != border)
+            {
+                importer.spriteBorder = border;
+                dirty = true;
+            }
+
+            var so = new SerializedObject(importer);
+            var spritesProp = so.FindProperty("m_SpriteSheet.m_Sprites");
+            if (spritesProp != null && spritesProp.isArray && spritesProp.arraySize > 0)
+            {
+                var borderProp = spritesProp.GetArrayElementAtIndex(0).FindPropertyRelative("m_Border");
+                if (borderProp != null && borderProp.vector4Value != border)
+                {
+                    borderProp.vector4Value = border;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    dirty = true;
+                }
+            }
+
+            if (dirty)
+            {
+                importer.SaveAndReimport();
             }
         }
 
@@ -1070,13 +1169,43 @@ namespace CookingSystem.EditorTools
         {
             EditorApplication.delayCall += () =>
             {
+                SanitizePlayerSettings();
                 if (EditorBuildSettings.scenes.Length == 0) AddGameScenes();
             };
+        }
+
+        public static void SanitizePlayerSettings()
+        {
+            bool changed = false;
+            if (!string.IsNullOrEmpty(PlayerSettings.productName))
+            {
+                string trimmedProduct = PlayerSettings.productName.Trim();
+                if (PlayerSettings.productName != trimmedProduct)
+                {
+                    PlayerSettings.productName = trimmedProduct;
+                    changed = true;
+                }
+            }
+            if (!string.IsNullOrEmpty(PlayerSettings.companyName))
+            {
+                string trimmedCompany = PlayerSettings.companyName.Trim();
+                if (PlayerSettings.companyName != trimmedCompany)
+                {
+                    PlayerSettings.companyName = trimmedCompany;
+                    changed = true;
+                }
+            }
+            if (changed)
+            {
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[BuildSceneListSetup] Trimmed trailing whitespace from PlayerSettings: '{PlayerSettings.companyName}' / '{PlayerSettings.productName}'");
+            }
         }
 
         [MenuItem("Tools/Main Menu/Add Game Scenes to Build Profile")]
         public static void AddGameScenes()
         {
+            SanitizePlayerSettings();
             var scenes = EditorBuildSettings.scenes.ToList();
             bool changed = false;
 
@@ -1113,7 +1242,8 @@ namespace CookingSystem.EditorTools
         [MenuItem("Tools/Save System/Open Save Folder")]
         private static void OpenSaveFolder()
         {
-            System.IO.Directory.CreateDirectory(Application.persistentDataPath);
+            string dir = System.IO.Path.GetDirectoryName(SaveSystem.SaveFilePath);
+            if (!string.IsNullOrWhiteSpace(dir)) System.IO.Directory.CreateDirectory(dir);
             EditorUtility.RevealInFinder(SaveSystem.SaveFilePath);
         }
 
