@@ -188,12 +188,17 @@ namespace CookingSystem.EditorTools
                 return img == null || img.sprite == null || img.sprite.name != "UI_PatienceFillPill";
             });
             bool needsProgressionUpgrade = hasLayout && roots.All(r =>
-                r.transform.Find(LayoutRootName + "/Day1TutorialModal") == null ||
-                r.transform.Find(LayoutRootName + "/TopHUD_Bar/UI_TimerBarBg/DayModePill") == null ||
-                r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/SummaryButtonsRow/UpgradeShopButton") == null ||
-                r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/LeaderboardSubmitSection") == null ||
-                r.transform.Find(LayoutRootName + "/LeaderboardPanel") == null ||
-                r.transform.Find(LayoutRootName + "/Countertop_Area/Zone4_IngredientTray/IngredientSlotsGrid/Slot_Pork") == null);
+            {
+                Transform tc = r.transform.Find(LayoutRootName + "/Day1TutorialModal/TutorialCard");
+                bool tutorialNeedsSpacingFix = tc is RectTransform tcr && tcr.sizeDelta.y < 710f;
+                return tc == null ||
+                       tutorialNeedsSpacingFix ||
+                       r.transform.Find(LayoutRootName + "/TopHUD_Bar/UI_TimerBarBg/DayModePill") == null ||
+                       r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/SummaryButtonsRow/UpgradeShopButton") == null ||
+                       r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/LeaderboardSubmitSection") == null ||
+                       r.transform.Find(LayoutRootName + "/LeaderboardPanel") == null ||
+                       r.transform.Find(LayoutRootName + "/Countertop_Area/Zone4_IngredientTray/IngredientSlotsGrid/Slot_Pork") == null;
+            });
 
             if ((hasLayout && !needs2DKitchenUpgrade && !needsUtensilIconsUpgrade && !needsPillPolishUpgrade && !needsProgressionUpgrade) || (!hasLayout && !hasStarterMarker))
             {
@@ -1358,7 +1363,7 @@ namespace CookingSystem.EditorTools
 
             cardRect = CreateRect("TutorialCard", overlay);
             cardRect.anchoredPosition = Vector2.zero;
-            cardRect.sizeDelta = new Vector2(1420f, 680f);
+            cardRect.sizeDelta = new Vector2(1420f, 720f);
             AddImage(cardRect, Hex("5A2D14"), roundedSprite, 0.35f).raycastTarget = false;
 
             RectTransform innerCard = CreateRect("InnerPanel", cardRect);
@@ -1368,21 +1373,21 @@ namespace CookingSystem.EditorTools
             AddImage(innerCard, Hex("2B1A10"), roundedSprite, 0.38f).raycastTarget = false;
 
             TMP_Text headerTmp = CreateAnchoredLabel("TutorialHeader", innerCard,
-                new Vector2(0.04f, 0.86f), new Vector2(0.96f, 0.96f),
+                new Vector2(0.04f, 0.87f), new Vector2(0.96f, 0.97f),
                 "Day 1 Shift Guide — How to Run Your Carinderia",
                 34f, FontStyles.Bold, Hex("FBBF24"), 20f);
             TMP_Text subTmp = CreateAnchoredLabel("TutorialSubtitle", innerCard,
-                new Vector2(0.06f, 0.79f), new Vector2(0.94f, 0.86f),
+                new Vector2(0.04f, 0.80f), new Vector2(0.96f, 0.865f),
                 "Follow the drag-and-drop cooking loop below. Your shift timer is paused until you start!",
                 20f, FontStyles.Normal, TextWarmCream, 13f);
 
             RectTransform stepsContainer = CreateRect("TutorialStepsGrid", innerCard);
-            stepsContainer.anchoredPosition = new Vector2(0f, 16f);
-            stepsContainer.sizeDelta = new Vector2(1340f, 440f);
+            stepsContainer.anchoredPosition = new Vector2(0f, -14f);
+            stepsContainer.sizeDelta = new Vector2(1340f, 412f);
             stepsGrid = stepsContainer.gameObject.AddComponent<GridLayoutGroup>();
             stepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             stepsGrid.constraintCount = 4;
-            stepsGrid.cellSize = new Vector2(318f, 424f);
+            stepsGrid.cellSize = new Vector2(318f, 404f);
             stepsGrid.spacing = new Vector2(18f, 18f);
             stepsGrid.childAlignment = TextAnchor.MiddleCenter;
 

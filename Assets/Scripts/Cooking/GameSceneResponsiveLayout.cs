@@ -241,14 +241,14 @@ namespace CookingSystem
 
             if (tutorialCardRect != null)
             {
-                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1420f, 680f));
+                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1420f, 720f));
                 Transform gridRt = tutorialStepsGrid != null ? tutorialStepsGrid.transform : null;
-                SetBox(gridRt, new Vector2(0f, 16f), new Vector2(1340f, 440f));
+                SetBox(gridRt, new Vector2(0f, -14f), new Vector2(1340f, 412f));
                 if (tutorialStepsGrid != null)
                 {
                     tutorialStepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
                     tutorialStepsGrid.constraintCount = 4;
-                    tutorialStepsGrid.cellSize = new Vector2(318f, 424f);
+                    tutorialStepsGrid.cellSize = new Vector2(318f, 404f);
                     tutorialStepsGrid.spacing = new Vector2(18f, 18f);
                 }
             }
@@ -386,15 +386,15 @@ namespace CookingSystem
 
             if (tutorialCardRect != null)
             {
-                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1010f, 1220f));
+                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1010f, 1260f));
                 Transform gridRt = tutorialStepsGrid != null ? tutorialStepsGrid.transform : null;
-                SetBox(gridRt, new Vector2(0f, 10f), new Vector2(940f, 860f));
+                SetBox(gridRt, new Vector2(0f, -14f), new Vector2(940f, 750f));
                 if (tutorialStepsGrid != null)
                 {
                     tutorialStepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
                     tutorialStepsGrid.constraintCount = 2;
-                    tutorialStepsGrid.cellSize = new Vector2(452f, 412f);
-                    tutorialStepsGrid.spacing = new Vector2(22f, 22f);
+                    tutorialStepsGrid.cellSize = new Vector2(452f, 364f);
+                    tutorialStepsGrid.spacing = new Vector2(22f, 20f);
                 }
             }
         }
