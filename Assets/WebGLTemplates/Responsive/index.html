@@ -140,6 +140,11 @@
         });
         syncCanvasSize();
 
+        if (window.location.protocol === "file:") {
+          showError("Unity WebGL cannot run directly from a local file (file://) because browsers block loading game data over file://. Open the game via Unity 'Build And Run', a local HTTP server, GitHub Pages, or itch.io.");
+          return;
+        }
+
         if (!window.WebGL2RenderingContext) {
           showError("Your browser does not support WebGL 2. Please update your browser or enable hardware acceleration.");
           return;
