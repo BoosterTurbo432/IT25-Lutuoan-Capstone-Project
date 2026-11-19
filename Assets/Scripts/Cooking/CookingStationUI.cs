@@ -129,8 +129,9 @@ namespace CookingSystem
             SetVesselSprite(cookingVesselSprite);
             if (statusText != null)
             {
+                string graceLabel = station.EffectiveBurnDuration.ToString("0.#");
                 statusText.text = station.RequirePrepStation
-                    ? "<color=#00FF7F>Ready! Click Plate! (3s)</color>"
+                    ? $"<color=#00FF7F>Ready! Click Plate! ({graceLabel}s)</color>"
                     : "<color=#00FF7F>Dish Ready! Click Serve</color>";
             }
             if (cookButton != null)

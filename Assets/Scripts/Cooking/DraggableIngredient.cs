@@ -7,12 +7,18 @@ namespace CookingSystem
 {
     public enum IngredientType
     {
-        Tomato,
-        Cheese,
-        Meat,
-        Mushroom,
-        Onion,
-        Herbs
+        Tomato = 0,
+        Cheese = 1,
+        Meat = 2,
+        Mushroom = 3,
+        Onion = 4,
+        Herbs = 5,
+        Garlic = 6,
+        Potato = 7,
+        Cabbage = 8,
+        Carrots = 9,
+        Pork = 10,
+        BellPepper = 11
     }
 
     [RequireComponent(typeof(RectTransform))]
@@ -60,6 +66,15 @@ namespace CookingSystem
         public IngredientType Type => ingredientType;
         public string IngredientName => ingredientName;
         public bool IsBeingDragged { get; private set; }
+
+        public void ConfigureIdentity(IngredientType type, string displayName)
+        {
+            ingredientType = type;
+            if (!string.IsNullOrEmpty(displayName))
+            {
+                ingredientName = displayName;
+            }
+        }
 
         /// <summary>
         /// Fires when the ingredient is successfully placed and accepted into a cooking station.

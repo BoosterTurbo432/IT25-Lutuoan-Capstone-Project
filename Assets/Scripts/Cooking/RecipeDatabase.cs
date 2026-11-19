@@ -32,6 +32,7 @@ namespace CookingSystem
         public CookwareType requiredCookware;
         public List<IngredientType> requiredIngredients;
         public int basePoints;
+        public int minUnlockDay = 1;
         public Color placeholderColor;
 
         public string GetIngredientSummary()
@@ -46,6 +47,14 @@ namespace CookingSystem
                     IngredientType.Cheese => "Chs",
                     IngredientType.Meat => "Meat",
                     IngredientType.Mushroom => "Mush",
+                    IngredientType.Onion => "Onn",
+                    IngredientType.Herbs => "Grn",
+                    IngredientType.Garlic => "Grl",
+                    IngredientType.Potato => "Pat",
+                    IngredientType.Cabbage => "Cab",
+                    IngredientType.Carrots => "Car",
+                    IngredientType.Pork => "Pork",
+                    IngredientType.BellPepper => "Pep",
                     _ => ing.ToString()
                 });
             }
@@ -71,6 +80,7 @@ namespace CookingSystem
     {
         private static readonly List<RecipeDefinition> AllRecipes = new List<RecipeDefinition>
         {
+            // --- Day 1 Recipes (Ingridients Tray Lv 1) ---
             new RecipeDefinition
             {
                 recipeId = "sinigang_kamatis",
@@ -78,6 +88,7 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Tomato, IngredientType.Tomato },
                 basePoints = 150,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.91f, 0.36f, 0.29f, 1f)
             },
             new RecipeDefinition
@@ -87,6 +98,7 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Mushroom, IngredientType.Cheese },
                 basePoints = 180,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.83f, 0.75f, 0.60f, 1f)
             },
             new RecipeDefinition
@@ -96,6 +108,7 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Tomato, IngredientType.Mushroom },
                 basePoints = 250,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.65f, 0.28f, 0.23f, 1f)
             },
             new RecipeDefinition
@@ -105,6 +118,7 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Tomato, IngredientType.Cheese },
                 basePoints = 180,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.96f, 0.65f, 0.30f, 1f)
             },
             new RecipeDefinition
@@ -114,6 +128,7 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Mushroom },
                 basePoints = 210,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.55f, 0.24f, 0.18f, 1f)
             },
             new RecipeDefinition
@@ -123,7 +138,112 @@ namespace CookingSystem
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Cheese, IngredientType.Tomato },
                 basePoints = 260,
+                minUnlockDay = 1,
                 placeholderColor = new Color(0.85f, 0.42f, 0.26f, 1f)
+            },
+
+            // --- Day 2 Expanded Recipes (Ingridients 2: Onion, Garlic, Greens, Potato) ---
+            new RecipeDefinition
+            {
+                recipeId = "bistek_tagalog",
+                displayName = "Bistek Tagalog",
+                requiredCookware = CookwareType.Pan,
+                requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Onion, IngredientType.Garlic },
+                basePoints = 240,
+                minUnlockDay = 2,
+                placeholderColor = new Color(0.58f, 0.32f, 0.22f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "nilagang_baka",
+                displayName = "Nilagang Baka",
+                requiredCookware = CookwareType.Pot,
+                requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Potato, IngredientType.Herbs },
+                basePoints = 250,
+                minUnlockDay = 2,
+                placeholderColor = new Color(0.76f, 0.68f, 0.42f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "ginisang_pechay",
+                displayName = "Ginisang Pechay",
+                requiredCookware = CookwareType.Pan,
+                requiredIngredients = new List<IngredientType> { IngredientType.Garlic, IngredientType.Onion, IngredientType.Herbs },
+                basePoints = 195,
+                minUnlockDay = 2,
+                placeholderColor = new Color(0.32f, 0.72f, 0.44f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "tortang_patatas",
+                displayName = "Tortang Patatas",
+                requiredCookware = CookwareType.Pan,
+                requiredIngredients = new List<IngredientType> { IngredientType.Potato, IngredientType.Onion, IngredientType.Cheese },
+                basePoints = 215,
+                minUnlockDay = 2,
+                placeholderColor = new Color(0.92f, 0.76f, 0.34f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "picadillo_sabaw",
+                displayName = "Picadillo Sabaw",
+                requiredCookware = CookwareType.Pot,
+                requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Tomato, IngredientType.Potato },
+                basePoints = 245,
+                minUnlockDay = 2,
+                placeholderColor = new Color(0.82f, 0.42f, 0.28f, 1f)
+            },
+
+            // --- Day 3 & Endless Expanded Recipes (Ingridients 3: Cabbage, Carrots, Pork, Pepper) ---
+            new RecipeDefinition
+            {
+                recipeId = "pork_menudo",
+                displayName = "Pork Menudo",
+                requiredCookware = CookwareType.Pot,
+                requiredIngredients = new List<IngredientType> { IngredientType.Pork, IngredientType.Potato, IngredientType.Carrots },
+                basePoints = 275,
+                minUnlockDay = 3,
+                placeholderColor = new Color(0.88f, 0.44f, 0.25f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "afritadang_baboy",
+                displayName = "Afritadang Baboy",
+                requiredCookware = CookwareType.Pot,
+                requiredIngredients = new List<IngredientType> { IngredientType.Pork, IngredientType.BellPepper, IngredientType.Tomato },
+                basePoints = 280,
+                minUnlockDay = 3,
+                placeholderColor = new Color(0.84f, 0.28f, 0.26f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "pork_pochero",
+                displayName = "Pork Pochero",
+                requiredCookware = CookwareType.Pot,
+                requiredIngredients = new List<IngredientType> { IngredientType.Pork, IngredientType.Cabbage, IngredientType.Tomato },
+                basePoints = 270,
+                minUnlockDay = 3,
+                placeholderColor = new Color(0.75f, 0.48f, 0.35f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "carinderia_chop_suey",
+                displayName = "Pinoy Chop Suey",
+                requiredCookware = CookwareType.Pan,
+                requiredIngredients = new List<IngredientType> { IngredientType.Cabbage, IngredientType.Carrots, IngredientType.BellPepper },
+                basePoints = 240,
+                minUnlockDay = 3,
+                placeholderColor = new Color(0.38f, 0.76f, 0.46f, 1f)
+            },
+            new RecipeDefinition
+            {
+                recipeId = "spicy_pork_sisig",
+                displayName = "Sizzling Pork Sisig",
+                requiredCookware = CookwareType.Pan,
+                requiredIngredients = new List<IngredientType> { IngredientType.Pork, IngredientType.Onion, IngredientType.BellPepper },
+                basePoints = 285,
+                minUnlockDay = 3,
+                placeholderColor = new Color(0.86f, 0.56f, 0.28f, 1f)
             }
         };
 
@@ -132,6 +252,35 @@ namespace CookingSystem
         public static RecipeDefinition GetRandomRecipe()
         {
             return AllRecipes[UnityEngine.Random.Range(0, AllRecipes.Count)];
+        }
+
+        public static RecipeDefinition GetRandomRecipeForDay(int maxUnlockDay)
+        {
+            int clampedDay = Mathf.Clamp(maxUnlockDay, 1, 3);
+            var unlocked = new List<RecipeDefinition>();
+            var newlyAdded = new List<RecipeDefinition>();
+
+            for (int i = 0; i < AllRecipes.Count; i++)
+            {
+                if (AllRecipes[i].minUnlockDay <= clampedDay)
+                {
+                    unlocked.Add(AllRecipes[i]);
+                    if (AllRecipes[i].minUnlockDay == clampedDay)
+                    {
+                        newlyAdded.Add(AllRecipes[i]);
+                    }
+                }
+            }
+
+            if (unlocked.Count == 0) return AllRecipes[0];
+
+            // Favor newly unlocked Day 2/3 dishes so players experience fresh ingredients immediately
+            if (clampedDay > 1 && newlyAdded.Count > 0 && UnityEngine.Random.value < 0.62f)
+            {
+                return newlyAdded[UnityEngine.Random.Range(0, newlyAdded.Count)];
+            }
+
+            return unlocked[UnityEngine.Random.Range(0, unlocked.Count)];
         }
 
         public static RecipeDefinition GetById(string recipeId)
@@ -205,6 +354,14 @@ namespace CookingSystem
             bool hasCheese = false;
             bool hasMeat = false;
             bool hasMushroom = false;
+            bool hasOnion = false;
+            bool hasGreens = false;
+            bool hasGarlic = false;
+            bool hasPotato = false;
+            bool hasCabbage = false;
+            bool hasCarrots = false;
+            bool hasPork = false;
+            bool hasPepper = false;
 
             for (int i = 0; i < ingredients.Count; i++)
             {
@@ -214,19 +371,41 @@ namespace CookingSystem
                     case IngredientType.Cheese: hasCheese = true; break;
                     case IngredientType.Meat: hasMeat = true; break;
                     case IngredientType.Mushroom: hasMushroom = true; break;
+                    case IngredientType.Onion: hasOnion = true; break;
+                    case IngredientType.Herbs: hasGreens = true; break;
+                    case IngredientType.Garlic: hasGarlic = true; break;
+                    case IngredientType.Potato: hasPotato = true; break;
+                    case IngredientType.Cabbage: hasCabbage = true; break;
+                    case IngredientType.Carrots: hasCarrots = true; break;
+                    case IngredientType.Pork: hasPork = true; break;
+                    case IngredientType.BellPepper: hasPepper = true; break;
                 }
             }
 
+            if (hasPork && hasPepper && hasTomato) return "Afritadang Baboy";
+            if (hasPork && hasPotato && hasCarrots) return "Pork Menudo";
+            if (hasPork && hasCabbage) return "Pork Pochero";
+            if (hasPork && (hasOnion || hasPepper)) return "Sizzling Pork Sisig";
+            if (hasCabbage && hasCarrots && hasPepper) return "Pinoy Chop Suey";
+            if (hasMeat && hasOnion && hasGarlic) return "Bistek Tagalog";
+            if (hasMeat && hasPotato && hasGreens) return "Nilagang Baka";
             if (hasMeat && hasTomato && hasCheese) return "Cheesy Kaldereta";
             if (hasMeat && hasTomato && hasMushroom) return "Mechado w/ Kabute";
             if (hasMeat && hasMushroom && hasCheese) return "Creamy Mushroom Bistek";
             if (hasTomato && hasCheese && hasMushroom) return "Cheesy Kamatis-Kabute Gisa";
+            if (hasGarlic && hasOnion && hasGreens) return "Ginisang Pechay";
+            if (hasPotato && hasOnion && hasCheese) return "Tortang Patatas";
             if (hasMeat && hasMushroom) return "Pinoy Mushroom Steak";
             if (hasTomato && hasCheese) return "Cheesy Ginisang Kamatis";
             if (hasTomato && hasMushroom) return "Ginisang Kamatis & Kabute";
             if (hasMeat && hasTomato) return "Pork Menudillo";
             if (hasCheese && hasMushroom) return "Creamy Kabute & Keso";
             if (hasMeat && hasCheese) return "Cheesy Sisig";
+            if (hasPork) return cookware == CookwareType.Pot ? "Sinigang na Baboy" : "Lechon Kawali";
+            if (hasCabbage || hasCarrots || hasGreens) return cookware == CookwareType.Pot ? "Bulanglang Gulay" : "Ginisang Gulay";
+            if (hasPotato) return "Adobong Patatas";
+            if (hasPepper) return "Bicol Sili Stir-Fry";
+            if (hasGarlic || hasOnion) return "Sangkutsa Special";
             if (hasMeat) return cookware == CookwareType.Pot ? "Nilagang Baka" : "Bistek Tagalog";
             if (hasTomato) return cookware == CookwareType.Pot ? "Sinigang sa Kamatis" : "Sarsyadong Kamatis";
             if (hasCheese) return cookware == CookwareType.Pot ? "Mainit na Keso Soup" : "Pinoy Kesong Melt";
@@ -244,6 +423,14 @@ namespace CookingSystem
                 IngredientType.Cheese => new Color(0.96f, 0.79f, 0.36f, 1f),
                 IngredientType.Meat => new Color(0.72f, 0.31f, 0.26f, 1f),
                 IngredientType.Mushroom => new Color(0.78f, 0.68f, 0.55f, 1f),
+                IngredientType.Onion => new Color(0.68f, 0.42f, 0.80f, 1f),
+                IngredientType.Herbs => new Color(0.32f, 0.76f, 0.45f, 1f),
+                IngredientType.Garlic => new Color(0.92f, 0.84f, 0.68f, 1f),
+                IngredientType.Potato => new Color(0.88f, 0.70f, 0.32f, 1f),
+                IngredientType.Cabbage => new Color(0.45f, 0.82f, 0.52f, 1f),
+                IngredientType.Carrots => new Color(0.96f, 0.52f, 0.22f, 1f),
+                IngredientType.Pork => new Color(0.88f, 0.34f, 0.38f, 1f),
+                IngredientType.BellPepper => new Color(0.94f, 0.68f, 0.24f, 1f),
                 _ => new Color(0.88f, 0.48f, 0.37f, 1f)
             };
         }

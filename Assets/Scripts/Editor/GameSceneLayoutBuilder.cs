@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CookingSystem.UI;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -47,6 +48,16 @@ namespace CookingSystem.EditorTools
         private const string IngCheesePath = "Assets/2D Kitchen/Ingridients Tray Lv 1/cheese.png";
         private const string IngMeatPath = "Assets/2D Kitchen/Ingridients Tray Lv 1/meat.png";
         private const string IngMushroomPath = "Assets/2D Kitchen/Ingridients Tray Lv 1/mushroom.png";
+
+        // Day 2 & Day 3 Expanded Ingredients
+        private const string IngOnionPath = "Assets/2D Kitchen/Ingridients 2/1.png";
+        private const string IngGarlicPath = "Assets/2D Kitchen/Ingridients 2/2.png";
+        private const string IngGreensPath = "Assets/2D Kitchen/Ingridients 2/3.png";
+        private const string IngPotatoPath = "Assets/2D Kitchen/Ingridients 2/4.png";
+        private const string IngCabbagePath = "Assets/2D Kitchen/Ingridients 3/cabbage.png";
+        private const string IngCarrotsPath = "Assets/2D Kitchen/Ingridients 3/carrots.png";
+        private const string IngPorkPath = "Assets/2D Kitchen/Ingridients 3/meat.png";
+        private const string IngPepperPath = "Assets/2D Kitchen/Ingridients 3/pepper.png";
 
         private const string PotIdlePath = "Assets/2D Kitchen/Pots w state/1.png";
         private const string PotCookedPath = "Assets/2D Kitchen/Pots w state/2.png";
@@ -125,6 +136,14 @@ namespace CookingSystem.EditorTools
         private static Sprite cheeseSprite;
         private static Sprite meatSprite;
         private static Sprite mushroomSprite;
+        private static Sprite onionSprite;
+        private static Sprite garlicSprite;
+        private static Sprite greensSprite;
+        private static Sprite potatoSprite;
+        private static Sprite cabbageSprite;
+        private static Sprite carrotsSprite;
+        private static Sprite porkSprite;
+        private static Sprite pepperSprite;
         private static Sprite potIdleSprite;
         private static Sprite potCookedSprite;
         private static Sprite potBurnedSprite;
@@ -168,8 +187,15 @@ namespace CookingSystem.EditorTools
                 Image img = p != null ? p.GetComponent<Image>() : null;
                 return img == null || img.sprite == null || img.sprite.name != "UI_PatienceFillPill";
             });
+            bool needsProgressionUpgrade = hasLayout && roots.All(r =>
+                r.transform.Find(LayoutRootName + "/Day1TutorialModal") == null ||
+                r.transform.Find(LayoutRootName + "/TopHUD_Bar/UI_TimerBarBg/DayModePill") == null ||
+                r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/SummaryButtonsRow/UpgradeShopButton") == null ||
+                r.transform.Find(LayoutRootName + "/EndOfLevelSummaryModal/SummaryCard/LeaderboardSubmitSection") == null ||
+                r.transform.Find(LayoutRootName + "/LeaderboardPanel") == null ||
+                r.transform.Find(LayoutRootName + "/Countertop_Area/Zone4_IngredientTray/IngredientSlotsGrid/Slot_Pork") == null);
 
-            if ((hasLayout && !needs2DKitchenUpgrade && !needsUtensilIconsUpgrade && !needsPillPolishUpgrade) || (!hasLayout && !hasStarterMarker))
+            if ((hasLayout && !needs2DKitchenUpgrade && !needsUtensilIconsUpgrade && !needsPillPolishUpgrade && !needsProgressionUpgrade) || (!hasLayout && !hasStarterMarker))
             {
                 return;
             }
@@ -304,6 +330,9 @@ namespace CookingSystem.EditorTools
             // Dish Notification Banner
             RectTransform banner = BuildDishNotificationBanner(layoutRoot);
 
+            // Day 1 Visual Tutorial Modal (overlays board cleanly & pauses shift timer until dismissed)
+            BuildDay1TutorialModal(layoutRoot, levelManager, out RectTransform tutorialCardRect, out GridLayoutGroup tutorialStepsGrid);
+
             // End-of-Level Summary Modal
             BuildSummaryModal(layoutRoot, levelManager);
 
@@ -326,6 +355,8 @@ namespace CookingSystem.EditorTools
             SetRef(respSo, "prepTrayRoot", prepTrayRoot);
             SetRef(respSo, "foodDisplayTrayZone", displayZone);
             SetRef(respSo, "utilitySafetyZone", utilityZone);
+            SetRef(respSo, "tutorialCardRect", tutorialCardRect);
+            SetRef(respSo, "tutorialStepsGrid", tutorialStepsGrid);
             respSo.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -355,10 +386,14 @@ namespace CookingSystem.EditorTools
             timerBg.sizeDelta = new Vector2(880f, 62f);
             AddImage(timerBg, Color.white, timerBarBgSprite).raycastTarget = false;
 
-            // Left track inside timer bar with clean capsule pill fill
+            // Day / Mode badge slot right after the clock icon
+            TMP_Text dayBadgeTmp = CreatePillLabel("DayModePill", "DayModeText", timerBg, "Day 1/3",
+                new Vector2(-276f, 0f), new Vector2(142f, 36f), new Color(0.16f, 0.08f, 0.04f, 0.94f), 17f, TextHintYellow, 11f);
+
+            // Middle progress track with clean capsule pill fill
             RectTransform timerTrack = CreateRect("TimerProgressTrack", timerBg);
-            timerTrack.anchoredPosition = new Vector2(-108f, 0f);
-            timerTrack.sizeDelta = new Vector2(280f, 34f);
+            timerTrack.anchoredPosition = new Vector2(-62f, 0f);
+            timerTrack.sizeDelta = new Vector2(252f, 34f);
             AddImage(timerTrack, Color.white, timerTrackSprite).raycastTarget = false;
 
             RectTransform timerFillMask = CreateRect("TimerFillMask", timerTrack);
@@ -379,16 +414,16 @@ namespace CookingSystem.EditorTools
             timerFillImg.fillAmount = 1f;
             timerFillImg.raycastTarget = false;
 
-            // Middle dark readout slot inside wooden timer bar
+            // Right dark readout slot inside wooden timer bar
             RectTransform readoutSlot = CreateRect("ReadoutTrackSlot", timerBg);
-            readoutSlot.anchoredPosition = new Vector2(226f, 0f);
-            readoutSlot.sizeDelta = new Vector2(360f, 36f);
+            readoutSlot.anchoredPosition = new Vector2(248f, 0f);
+            readoutSlot.sizeDelta = new Vector2(342f, 36f);
             AddImage(readoutSlot, Color.white, timerTrackSprite).raycastTarget = false;
 
             TMP_Text timerTmp = CreateLabel("TimerText", readoutSlot, "Time: 03:00",
-                new Vector2(-84f, 0f), new Vector2(166f, 32f), 20f, FontStyles.Bold, TextWarmCream, TextAlignmentOptions.Center, 13f);
-            TMP_Text ordersTmp = CreateLabel("OrdersText", readoutSlot, "Orders: 0/8",
-                new Vector2(86f, 0f), new Vector2(166f, 32f), 20f, FontStyles.Bold, Hex("4ADE80"), TextAlignmentOptions.Center, 13f);
+                new Vector2(-80f, 0f), new Vector2(160f, 32f), 19f, FontStyles.Bold, TextWarmCream, TextAlignmentOptions.Center, 12f);
+            TMP_Text ordersTmp = CreateLabel("OrdersText", readoutSlot, "Orders: 0/6",
+                new Vector2(82f, 0f), new Vector2(160f, 32f), 19f, FontStyles.Bold, Hex("4ADE80"), TextAlignmentOptions.Center, 12f);
 
             // Right Wooden Restart & Menu buttons (UI.svg)
             Button restartBtn = CreateSpriteButton("RestartHudButton", hud, btnRestartSprite, "Restart",
@@ -397,10 +432,11 @@ namespace CookingSystem.EditorTools
                 new Vector2(745f, 0f), new Vector2(180f, 56f), new Vector2(18f, 0f), new Vector2(118f, 36f), 18f, TextWarmCream);
 
             var so = new SerializedObject(manager);
+            SetRef(so, "dayModeBadgeText", dayBadgeTmp);
             SetRef(so, "timerText", timerTmp);
             SetRef(so, "timerFillBar", timerFillImg);
             SetRef(so, "timerThumbRect", null);
-            so.FindProperty("timerTrackWidth").floatValue = 252f;
+            so.FindProperty("timerTrackWidth").floatValue = 236f;
             SetRef(so, "scoreText", scoreTmp);
             SetRef(so, "ordersText", ordersTmp);
             SetRef(so, "comboText", comboTmp);
@@ -686,36 +722,57 @@ namespace CookingSystem.EditorTools
         private static RectTransform BuildIngredientTrayZone(RectTransform parent)
         {
             RectTransform zone = CreateRect("Zone4_IngredientTray", parent);
-            zone.anchoredPosition = new Vector2(-715f, -168f);
-            zone.sizeDelta = new Vector2(406f, 268f);
+            zone.anchoredPosition = new Vector2(-715f, -162f);
+            zone.sizeDelta = new Vector2(406f, 286f);
             AddImage(zone, ZoneGlassBg, roundedSprite, 0.4f).raycastTarget = false;
 
             CreatePillLabel("IngredientHeaderPill", "ZoneHeader_IngredientTray", zone, "Ingredient Tray (Drag to Board)",
-                new Vector2(0f, 114f), new Vector2(384f, 28f), PillDarkAlpha, 15f, TextHintYellow, 11f);
+                new Vector2(0f, 124f), new Vector2(384f, 26f), PillDarkAlpha, 15f, TextHintYellow, 11f);
 
             RectTransform grid = CreateRect("IngredientSlotsGrid", zone);
             grid.anchoredPosition = new Vector2(0f, -14f);
-            grid.sizeDelta = new Vector2(382f, 222f);
+            grid.sizeDelta = new Vector2(386f, 238f);
 
             GridLayoutGroup glg = grid.gameObject.AddComponent<GridLayoutGroup>();
-            glg.cellSize = new Vector2(184f, 106f);
+            glg.cellSize = new Vector2(184f, 108f);
             glg.spacing = new Vector2(12f, 10f);
             glg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             glg.constraintCount = 2;
             glg.childAlignment = TextAnchor.MiddleCenter;
 
-            CreateIngredientPantrySlot(grid, "Slot_Tomato", "Tomato", TomatoPrefabPath, tomatoSprite);
-            CreateIngredientPantrySlot(grid, "Slot_Cheese", "Cheese", CheesePrefabPath, cheeseSprite);
-            CreateIngredientPantrySlot(grid, "Slot_Meat", "Meat", MeatPrefabPath, meatSprite);
-            CreateIngredientPantrySlot(grid, "Slot_Mushroom", "Mushroom", MushroomPrefabPath, mushroomSprite);
+            // Day 1 Pantry (Indices 0..3)
+            CreateIngredientPantrySlot(grid, "Slot_Tomato", "Tomato", TomatoPrefabPath, tomatoSprite, false, IngredientType.Tomato, true);
+            CreateIngredientPantrySlot(grid, "Slot_Cheese", "Cheese", CheesePrefabPath, cheeseSprite, false, IngredientType.Cheese, true);
+            CreateIngredientPantrySlot(grid, "Slot_Meat", "Meat", MeatPrefabPath, meatSprite, false, IngredientType.Meat, true);
+            CreateIngredientPantrySlot(grid, "Slot_Mushroom", "Mushroom", MushroomPrefabPath, mushroomSprite, false, IngredientType.Mushroom, true);
+
+            // Day 2 Expansion (Indices 4..7, Ingridients 2)
+            CreateIngredientPantrySlot(grid, "Slot_Onion", "Onion", TomatoPrefabPath, onionSprite, true, IngredientType.Onion, false);
+            CreateIngredientPantrySlot(grid, "Slot_Garlic", "Garlic", TomatoPrefabPath, garlicSprite, true, IngredientType.Garlic, false);
+            CreateIngredientPantrySlot(grid, "Slot_Greens", "Greens", TomatoPrefabPath, greensSprite, true, IngredientType.Herbs, false);
+            CreateIngredientPantrySlot(grid, "Slot_Potato", "Potato", TomatoPrefabPath, potatoSprite, true, IngredientType.Potato, false);
+
+            // Day 3 & Endless Expansion (Indices 8..11, Ingridients 3)
+            CreateIngredientPantrySlot(grid, "Slot_Cabbage", "Cabbage", TomatoPrefabPath, cabbageSprite, true, IngredientType.Cabbage, false);
+            CreateIngredientPantrySlot(grid, "Slot_Carrots", "Carrots", TomatoPrefabPath, carrotsSprite, true, IngredientType.Carrots, false);
+            CreateIngredientPantrySlot(grid, "Slot_Pork", "Pork", TomatoPrefabPath, porkSprite, true, IngredientType.Pork, false);
+            CreateIngredientPantrySlot(grid, "Slot_BellPepper", "Pepper", TomatoPrefabPath, pepperSprite, true, IngredientType.BellPepper, false);
 
             return zone;
         }
 
-        private static void CreateIngredientPantrySlot(RectTransform parent, string slotName, string displayName, string prefabPath, Sprite artSprite)
+        private static void CreateIngredientPantrySlot(
+            RectTransform parent,
+            string slotName,
+            string displayName,
+            string prefabPath,
+            Sprite artSprite,
+            bool overrideIdentity,
+            IngredientType overrideType,
+            bool activeByDefault)
         {
             RectTransform slot = CreateRect(slotName, parent);
-            slot.sizeDelta = new Vector2(184f, 106f);
+            slot.sizeDelta = new Vector2(184f, 108f);
             AddImage(slot, new Color(0.16f, 0.11f, 0.08f, 0.72f), roundedSprite, 0.4f).raycastTarget = false;
 
             RectTransform socket = CreateRect("SocketRing_Placeholder", slot);
@@ -724,7 +781,7 @@ namespace CookingSystem.EditorTools
             AddImage(socket, new Color(1f, 1f, 1f, 0.14f), roundedSprite, 0.4f).raycastTarget = false;
 
             CreateLabel("TitleText", slot, displayName,
-                new Vector2(44f, 18f), new Vector2(88f, 28f), 17f, FontStyles.Bold, TextLight, TextAlignmentOptions.Center, 12f);
+                new Vector2(44f, 18f), new Vector2(88f, 28f), 17f, FontStyles.Bold, TextLight, TextAlignmentOptions.Center, 10f);
 
             CreatePillLabel("DragHintPill", "DragHint", slot, "Drag ->",
                 new Vector2(44f, -18f), new Vector2(88f, 28f), PillDarkAlpha, 14f, TextHintYellow, 10f);
@@ -733,7 +790,7 @@ namespace CookingSystem.EditorTools
             if (prefab != null)
             {
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, slot);
-                instance.name = prefab.name;
+                instance.name = overrideIdentity ? $"Ingredient_{displayName}" : prefab.name;
                 RectTransform instRect = instance.GetComponent<RectTransform>();
                 if (instRect != null)
                 {
@@ -747,6 +804,15 @@ namespace CookingSystem.EditorTools
                     instImg.sprite = artSprite;
                     instImg.color = Color.white;
                     instImg.preserveAspect = true;
+                }
+                DraggableIngredient dragIng = instance.GetComponent<DraggableIngredient>();
+                if (dragIng != null && overrideIdentity)
+                {
+                    dragIng.ConfigureIdentity(overrideType, displayName);
+                    var ingSo = new SerializedObject(dragIng);
+                    ingSo.FindProperty("ingredientType").enumValueIndex = (int)overrideType;
+                    ingSo.FindProperty("ingredientName").stringValue = displayName;
+                    ingSo.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
 
@@ -762,7 +828,7 @@ namespace CookingSystem.EditorTools
             overlay.gameObject.SetActive(false);
 
             TMP_Text cooldownTmp = CreateLabel("CooldownText", slot, "",
-                new Vector2(-40f, 0f), new Vector2(78f, 34f), 18f, FontStyles.Bold, TextLight, TextAlignmentOptions.Center, 13f);
+                new Vector2(-40f, 0f), new Vector2(78f, 34f), 18f, FontStyles.Bold, TextLight, TextAlignmentOptions.Center, 11f);
             cooldownTmp.gameObject.SetActive(false);
 
             PantrySlot pantrySlot = slot.gameObject.AddComponent<PantrySlot>();
@@ -772,9 +838,14 @@ namespace CookingSystem.EditorTools
             so.FindProperty("spawnAnchoredPosition").vector2Value = new Vector2(-40f, 0f);
             SetRef(so, "overrideIconSprite", artSprite);
             so.FindProperty("overrideIconSize").vector2Value = new Vector2(82f, 82f);
+            so.FindProperty("useIngredientIdentityOverride").boolValue = overrideIdentity;
+            so.FindProperty("overrideIngredientType").enumValueIndex = (int)overrideType;
+            so.FindProperty("overrideIngredientName").stringValue = displayName;
             SetRef(so, "cooldownOverlay", overlayImg);
             SetRef(so, "cooldownText", cooldownTmp);
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            slot.gameObject.SetActive(activeByDefault);
         }
 
         private static List<CookingStation> BuildStoveAreaZone(
@@ -1088,6 +1159,14 @@ namespace CookingSystem.EditorTools
             SetRef(prepSo, "cheeseSprite", cheeseSprite);
             SetRef(prepSo, "meatSprite", meatSprite);
             SetRef(prepSo, "mushroomSprite", mushroomSprite);
+            SetRef(prepSo, "onionSprite", onionSprite);
+            SetRef(prepSo, "herbsSprite", greensSprite);
+            SetRef(prepSo, "garlicSprite", garlicSprite);
+            SetRef(prepSo, "potatoSprite", potatoSprite);
+            SetRef(prepSo, "cabbageSprite", cabbageSprite);
+            SetRef(prepSo, "carrotsSprite", carrotsSprite);
+            SetRef(prepSo, "porkSprite", porkSprite);
+            SetRef(prepSo, "bellPepperSprite", pepperSprite);
             prepSo.ApplyModifiedPropertiesWithoutUndo();
 
             return zone;
@@ -1267,6 +1346,146 @@ namespace CookingSystem.EditorTools
             return banner;
         }
 
+        private static void BuildDay1TutorialModal(
+            RectTransform parent,
+            LevelGameManager manager,
+            out RectTransform cardRect,
+            out GridLayoutGroup stepsGrid)
+        {
+            RectTransform overlay = CreateRect("Day1TutorialModal", parent);
+            Stretch(overlay);
+            AddImage(overlay, new Color(0.04f, 0.03f, 0.03f, 0.86f), null).raycastTarget = true;
+
+            cardRect = CreateRect("TutorialCard", overlay);
+            cardRect.anchoredPosition = Vector2.zero;
+            cardRect.sizeDelta = new Vector2(1420f, 680f);
+            AddImage(cardRect, Hex("5A2D14"), roundedSprite, 0.35f).raycastTarget = false;
+
+            RectTransform innerCard = CreateRect("InnerPanel", cardRect);
+            Stretch(innerCard);
+            innerCard.offsetMin = new Vector2(12f, 12f);
+            innerCard.offsetMax = new Vector2(-12f, -12f);
+            AddImage(innerCard, Hex("2B1A10"), roundedSprite, 0.38f).raycastTarget = false;
+
+            TMP_Text headerTmp = CreateAnchoredLabel("TutorialHeader", innerCard,
+                new Vector2(0.04f, 0.86f), new Vector2(0.96f, 0.96f),
+                "Day 1 Shift Guide — How to Run Your Carinderia",
+                34f, FontStyles.Bold, Hex("FBBF24"), 20f);
+            TMP_Text subTmp = CreateAnchoredLabel("TutorialSubtitle", innerCard,
+                new Vector2(0.06f, 0.79f), new Vector2(0.94f, 0.86f),
+                "Follow the drag-and-drop cooking loop below. Your shift timer is paused until you start!",
+                20f, FontStyles.Normal, TextWarmCream, 13f);
+
+            RectTransform stepsContainer = CreateRect("TutorialStepsGrid", innerCard);
+            stepsContainer.anchoredPosition = new Vector2(0f, 16f);
+            stepsContainer.sizeDelta = new Vector2(1340f, 440f);
+            stepsGrid = stepsContainer.gameObject.AddComponent<GridLayoutGroup>();
+            stepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            stepsGrid.constraintCount = 4;
+            stepsGrid.cellSize = new Vector2(318f, 424f);
+            stepsGrid.spacing = new Vector2(18f, 18f);
+            stepsGrid.childAlignment = TextAnchor.MiddleCenter;
+
+            Sprite customerDemoSprite = LoadLargestSprite(CustomerAssets[0].path);
+
+            CreateTutorialStepCard(stepsContainer, "Step1_Prep", "1. Prep Ingredients",
+                tomatoSprite, prepBoardSprite,
+                "Drag 1–3 ingredients onto the Wooden Board, then click Chop & Mix inside the green sweet spot!",
+                Hex("E07A5F"));
+
+            CreateTutorialStepCard(stepsContainer, "Step2_Cook", "2. Utensil & Stove",
+                ladleSprite ?? potCookedSprite, stoveSprite,
+                "Pick Ladle (Pot) or Spatula (Pan), drag Ready Mix onto a matching burner, and Plate within 3s!",
+                Hex("F59E0B"));
+
+            CreateTutorialStepCard(stepsContainer, "Step3_Serve", "3. Drinks & Serve",
+                dispenserTanksSprite, customerDemoSprite ?? trayWithDishSprite,
+                "Drag an empty cup onto the Drink Dispenser, then drag meals & drinks onto matching customers.",
+                Hex("38BDF8"));
+
+            CreateTutorialStepCard(stepsContainer, "Step4_Safety", "4. Fire Safety",
+                extinguisherSprite, trashClosedSprite,
+                "Burner catches fire? Drag the Fire Extinguisher onto flames, then drag burnt food into the Trash Can.",
+                Hex("EF4444"));
+
+            RectTransform btnRow = CreateRect("TutorialFooter", innerCard);
+            btnRow.anchorMin = new Vector2(0.25f, 0.03f);
+            btnRow.anchorMax = new Vector2(0.75f, 0.14f);
+            btnRow.offsetMin = Vector2.zero;
+            btnRow.offsetMax = Vector2.zero;
+
+            Button startBtn = CreateActionButton("StartShiftButton", btnRow, "Start Shift",
+                Vector2.zero, new Vector2(300f, 60f), ServeButtonColor, 26f);
+
+            var so = new SerializedObject(manager);
+            SetRef(so, "tutorialModalRoot", overlay.gameObject);
+            SetRef(so, "startShiftButton", startBtn);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            overlay.gameObject.SetActive(false);
+        }
+
+        private static void CreateTutorialStepCard(
+            Transform parent,
+            string name,
+            string title,
+            Sprite leftIcon,
+            Sprite rightIcon,
+            string body,
+            Color accentColor)
+        {
+            RectTransform card = CreateRect(name, parent);
+            AddImage(card, new Color(0.11f, 0.07f, 0.05f, 0.96f), roundedSprite, 0.45f).raycastTarget = false;
+
+            RectTransform topBar = CreateRect("TopBar", card);
+            topBar.anchorMin = new Vector2(0.05f, 0.85f);
+            topBar.anchorMax = new Vector2(0.95f, 0.95f);
+            topBar.offsetMin = Vector2.zero;
+            topBar.offsetMax = Vector2.zero;
+            AddImage(topBar, accentColor, roundedSprite, 0.5f).raycastTarget = false;
+
+            CreateAnchoredLabel("Title", topBar, Vector2.zero, Vector2.one, title, 18f, FontStyles.Bold, TextLight, 12f);
+
+            RectTransform diagramBox = CreateRect("DiagramBox", card);
+            diagramBox.anchorMin = new Vector2(0.06f, 0.44f);
+            diagramBox.anchorMax = new Vector2(0.94f, 0.82f);
+            diagramBox.offsetMin = Vector2.zero;
+            diagramBox.offsetMax = Vector2.zero;
+            AddImage(diagramBox, new Color(0.98f, 0.94f, 0.87f, 0.96f), roundedSprite, 0.45f).raycastTarget = false;
+
+            if (leftIcon != null)
+            {
+                RectTransform leftRect = CreateRect("LeftIcon", diagramBox);
+                leftRect.anchorMin = new Vector2(0.04f, 0.12f);
+                leftRect.anchorMax = new Vector2(0.42f, 0.88f);
+                leftRect.offsetMin = Vector2.zero;
+                leftRect.offsetMax = Vector2.zero;
+                Image lImg = AddImage(leftRect, Color.white, leftIcon);
+                lImg.preserveAspect = true;
+                lImg.raycastTarget = false;
+            }
+
+            CreateAnchoredLabel("Arrow", diagramBox,
+                new Vector2(0.41f, 0.20f), new Vector2(0.59f, 0.80f),
+                "->", 26f, FontStyles.Bold, Hex("5A2D14"), 16f);
+
+            if (rightIcon != null)
+            {
+                RectTransform rightRect = CreateRect("RightIcon", diagramBox);
+                rightRect.anchorMin = new Vector2(0.58f, 0.12f);
+                rightRect.anchorMax = new Vector2(0.96f, 0.88f);
+                rightRect.offsetMin = Vector2.zero;
+                rightRect.offsetMax = Vector2.zero;
+                Image rImg = AddImage(rightRect, Color.white, rightIcon);
+                rImg.preserveAspect = true;
+                rImg.raycastTarget = false;
+            }
+
+            CreateAnchoredLabel("Body", card,
+                new Vector2(0.06f, 0.05f), new Vector2(0.94f, 0.41f),
+                body, 17f, FontStyles.Normal, TextWarmCream, 12f);
+        }
+
         private static void BuildSummaryModal(RectTransform parent, LevelGameManager manager)
         {
             RectTransform overlay = CreateRect("EndOfLevelSummaryModal", parent);
@@ -1275,31 +1494,125 @@ namespace CookingSystem.EditorTools
 
             RectTransform card = CreateRect("SummaryCard", overlay);
             card.anchoredPosition = Vector2.zero;
-            card.sizeDelta = new Vector2(780f, 540f);
+            card.sizeDelta = new Vector2(880f, 670f);
             AddImage(card, Hex("2B1A10"), roundedSprite, 0.4f).raycastTarget = false;
 
             TMP_Text titleTmp = CreateLabel("SummaryTitleText", card, "Shift Complete!",
-                new Vector2(0f, 216f), new Vector2(700f, 54f), 38f, FontStyles.Bold, Hex("FBBF24"), TextAlignmentOptions.Center, 24f);
+                new Vector2(0f, 276f), new Vector2(800f, 54f), 36f, FontStyles.Bold, Hex("FBBF24"), TextAlignmentOptions.Center, 22f);
             TMP_Text breakdownTmp = CreateLabel("SummaryBreakdownText", card, string.Empty,
-                new Vector2(0f, 24f), new Vector2(700f, 260f), 21f, FontStyles.Normal, TextLight, TextAlignmentOptions.Center, 15f);
+                new Vector2(0f, 118f), new Vector2(800f, 226f), 20f, FontStyles.Normal, TextLight, TextAlignmentOptions.Center, 13f);
             TMP_Text finalScoreTmp = CreateLabel("SummaryFinalScoreText", card, "Final Score: 0",
-                new Vector2(0f, -130f), new Vector2(700f, 48f), 32f, FontStyles.Bold, Hex("4ADE80"), TextAlignmentOptions.Center, 22f);
+                new Vector2(0f, -18f), new Vector2(780f, 44f), 32f, FontStyles.Bold, Hex("4ADE80"), TextAlignmentOptions.Center, 22f);
 
-            Button playAgainBtn = CreateActionButton("PlayAgainButton", card, "Play Again",
-                new Vector2(-140f, -206f), new Vector2(220f, 56f), ServeButtonColor, 22f);
-            Button mainMenuBtn = CreateActionButton("SummaryMainMenuButton", card, "Main Menu",
-                new Vector2(140f, -206f), new Vector2(220f, 56f), Hex("6E231E"), 22f);
+            // Endless Mode 8-Character Name Entry & Save to Browser Leaderboard Section
+            RectTransform lbSubmit = CreateRect("LeaderboardSubmitSection", card);
+            lbSubmit.anchoredPosition = new Vector2(0f, -124f);
+            lbSubmit.sizeDelta = new Vector2(780f, 136f);
+            AddImage(lbSubmit, new Color(0.14f, 0.08f, 0.05f, 0.94f), roundedSprite, 0.45f).raycastTarget = false;
+
+            CreateLabel("LeaderboardPromptLabel", lbSubmit, "Enter 8-Char Name for Endless Leaderboard:",
+                new Vector2(0f, 46f), new Vector2(740f, 28f), 18f, FontStyles.Bold, Hex("FDE047"), TextAlignmentOptions.Center, 12f);
+
+            RectTransform inputRow = CreateRect("InputRow", lbSubmit);
+            inputRow.anchoredPosition = new Vector2(0f, 2f);
+            inputRow.sizeDelta = new Vector2(720f, 52f);
+
+            TMP_InputField nameInput = CreateNameInputField("LeaderboardNameInput", inputRow,
+                new Vector2(-130f, 0f), new Vector2(280f, 46f));
+
+            Button mobileKeyBtn = CreateActionButton("MobileKeyboardButton", inputRow, "Edit",
+                new Vector2(68f, 0f), new Vector2(90f, 46f), Hex("475569"), 16f);
+            mobileKeyBtn.gameObject.SetActive(false);
+
+            Button saveScoreBtn = CreateActionButton("SubmitLeaderboardButton", inputRow, "Save Score",
+                new Vector2(226f, 0f), new Vector2(204f, 48f), Hex("D97706"), 20f);
+            TMP_Text saveScoreBtnLbl = saveScoreBtn.GetComponentInChildren<TMP_Text>();
+
+            TMP_Text submitStatusTmp = CreateLabel("LeaderboardSubmitStatusText", lbSubmit, "Enter up to 8 characters — saves in your browser!",
+                new Vector2(0f, -44f), new Vector2(740f, 26f), 16f, FontStyles.Italic, TextWarmCream, TextAlignmentOptions.Center, 11f);
+
+            RectTransform buttonsRow = CreateRect("SummaryButtonsRow", card);
+            buttonsRow.anchoredPosition = new Vector2(0f, -256f);
+            buttonsRow.sizeDelta = new Vector2(840f, 64f);
+            HorizontalLayoutGroup rowHlg = buttonsRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            rowHlg.spacing = 16f;
+            rowHlg.childAlignment = TextAnchor.MiddleCenter;
+            rowHlg.childControlWidth = false;
+            rowHlg.childControlHeight = false;
+            rowHlg.childForceExpandWidth = false;
+            rowHlg.childForceExpandHeight = false;
+
+            Button upgradeBtn = CreateActionButton("UpgradeShopButton", buttonsRow, "Upgrade Shop (+1 SP)",
+                Vector2.zero, new Vector2(260f, 58f), Hex("D97706"), 19f);
+            TMP_Text upgradeBtnLbl = upgradeBtn.GetComponentInChildren<TMP_Text>();
+
+            Button viewLbBtn = CreateActionButton("ViewLeaderboardButton", buttonsRow, "Leaderboard",
+                Vector2.zero, new Vector2(200f, 58f), Hex("0284C7"), 20f);
+
+            Button playAgainBtn = CreateActionButton("PlayAgainButton", buttonsRow, "Play Again",
+                Vector2.zero, new Vector2(200f, 58f), ServeButtonColor, 20f);
+            TMP_Text playAgainLbl = playAgainBtn.GetComponentInChildren<TMP_Text>();
+
+            Button mainMenuBtn = CreateActionButton("SummaryMainMenuButton", buttonsRow, "Main Menu",
+                Vector2.zero, new Vector2(190f, 58f), Hex("6E231E"), 20f);
+
+            // Overlay Top-10 Endless Leaderboard Modal (reused from LeaderboardSceneBuilder)
+            LeaderboardPanelController leaderboardOverlay = LeaderboardSceneBuilder.BuildLeaderboardPanel(parent, isOverlay: true, out _);
 
             var so = new SerializedObject(manager);
             SetRef(so, "summaryModalRoot", overlay.gameObject);
             SetRef(so, "summaryTitleText", titleTmp);
             SetRef(so, "summaryBreakdownText", breakdownTmp);
             SetRef(so, "summaryFinalScoreText", finalScoreTmp);
+            SetRef(so, "upgradeShopButton", upgradeBtn);
+            SetRef(so, "upgradeShopButtonLabel", upgradeBtnLbl);
             SetRef(so, "playAgainButton", playAgainBtn);
+            SetRef(so, "playAgainButtonLabel", playAgainLbl);
             SetRef(so, "summaryMainMenuButton", mainMenuBtn);
+            SetRef(so, "leaderboardSubmitGroup", lbSubmit.gameObject);
+            SetRef(so, "leaderboardNameInput", nameInput);
+            SetRef(so, "mobileNamePromptButton", mobileKeyBtn);
+            SetRef(so, "submitLeaderboardButton", saveScoreBtn);
+            SetRef(so, "submitLeaderboardButtonLabel", saveScoreBtnLbl);
+            SetRef(so, "leaderboardSubmitStatusText", submitStatusTmp);
+            SetRef(so, "viewLeaderboardButton", viewLbBtn);
+            SetRef(so, "endlessLeaderboardPanel", leaderboardOverlay);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             overlay.gameObject.SetActive(false);
+        }
+
+        private static TMP_InputField CreateNameInputField(string name, Transform parent, Vector2 anchoredPos, Vector2 sizeDelta)
+        {
+            RectTransform root = CreateRect(name, parent);
+            root.anchoredPosition = anchoredPos;
+            root.sizeDelta = sizeDelta;
+            Image bgImg = AddImage(root, Hex("FFF6E5"), roundedSprite, 0.5f);
+            bgImg.raycastTarget = true;
+
+            RectTransform textArea = CreateRect("TextArea", root);
+            Stretch(textArea);
+            textArea.offsetMin = new Vector2(12f, 4f);
+            textArea.offsetMax = new Vector2(-12f, -4f);
+            textArea.gameObject.AddComponent<RectMask2D>();
+
+            TMP_Text placeholder = CreateAnchoredLabel("Placeholder", textArea, Vector2.zero, Vector2.one,
+                "8-Char Name...", 20f, FontStyles.Italic, new Color(0.45f, 0.36f, 0.28f, 0.65f), 12f);
+            TMP_Text textComponent = CreateAnchoredLabel("Text", textArea, Vector2.zero, Vector2.one,
+                string.Empty, 22f, FontStyles.Bold, TextDark, 14f);
+            ((TextMeshProUGUI)textComponent).textWrappingMode = TextWrappingModes.NoWrap;
+
+            TMP_InputField inputField = root.gameObject.AddComponent<TMP_InputField>();
+            inputField.targetGraphic = bgImg;
+            inputField.textViewport = textArea;
+            inputField.textComponent = (TextMeshProUGUI)textComponent;
+            inputField.placeholder = placeholder;
+            inputField.characterLimit = LeaderboardSystem.MaxNameLength;
+            inputField.contentType = TMP_InputField.ContentType.Standard;
+            inputField.caretColor = Hex("5A2D14");
+            inputField.selectionColor = new Color(0.96f, 0.65f, 0.14f, 0.4f);
+            inputField.text = "Chef";
+            return inputField;
         }
 
         private static TMP_Text CreateAnchoredLabel(
@@ -1558,6 +1871,16 @@ namespace CookingSystem.EditorTools
             cheeseSprite = LoadLargestSprite(IngCheesePath);
             meatSprite = LoadLargestSprite(IngMeatPath);
             mushroomSprite = LoadLargestSprite(IngMushroomPath);
+
+            onionSprite = LoadLargestSprite(IngOnionPath);
+            garlicSprite = LoadLargestSprite(IngGarlicPath);
+            greensSprite = LoadLargestSprite(IngGreensPath);
+            potatoSprite = LoadLargestSprite(IngPotatoPath);
+
+            cabbageSprite = LoadLargestSprite(IngCabbagePath);
+            carrotsSprite = LoadLargestSprite(IngCarrotsPath);
+            porkSprite = LoadLargestSprite(IngPorkPath);
+            pepperSprite = LoadLargestSprite(IngPepperPath);
 
             potIdleSprite = LoadLargestSprite(PotIdlePath);
             potCookedSprite = LoadLargestSprite(PotCookedPath);

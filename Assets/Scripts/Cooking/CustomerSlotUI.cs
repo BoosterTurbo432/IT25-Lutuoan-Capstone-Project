@@ -326,9 +326,13 @@ namespace CookingSystem
             if (orderType == OrderType.MealOnly)
             {
                 // Hospitality drink still pauses/restores customer patience!
+                SaveData save = SaveSystem.Current;
+                float effectiveRestore = Mathf.Clamp01(drinkRestoreFraction + ProgressionConfig.GetDrinkRestoreBonusFraction(save));
+                float effectiveFreeze = drinkFreezeDuration + ProgressionConfig.GetDrinkFreezeBonusSeconds(save);
+
                 trayItem.NotifyConsumed();
-                patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * drinkRestoreFraction));
-                patienceFreezeTimer = drinkFreezeDuration;
+                patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * effectiveRestore));
+                patienceFreezeTimer = effectiveFreeze;
                 RefreshPatienceUI(paused: true);
                 LevelGameManager.Instance?.RegisterDrinkDelivery(35, isComboWithMeal: false, satisfaction: -1f);
                 ShowTemporaryFeedback("<color=#38BDF8>Drink Refreshed Patience!</color>", 2.0f);
@@ -347,11 +351,15 @@ namespace CookingSystem
             float satisfaction = Mathf.Clamp01((drinkAccuracy * 0.65f) + (patienceRatio * 0.35f));
             int drinkPts = exactDrink ? 80 : 35;
 
+            SaveData hospSave = SaveSystem.Current;
+            float restoreFrac = Mathf.Clamp01(drinkRestoreFraction + ProgressionConfig.GetDrinkRestoreBonusFraction(hospSave));
+            float freezeSecs = drinkFreezeDuration + ProgressionConfig.GetDrinkFreezeBonusSeconds(hospSave);
+
             trayItem.NotifyConsumed();
             drinkDelivered = true;
 
-            patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * drinkRestoreFraction));
-            patienceFreezeTimer = drinkFreezeDuration;
+            patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * restoreFrac));
+            patienceFreezeTimer = freezeSecs;
             RefreshPatienceUI(paused: true);
 
             if (orderType == OrderType.DrinkOnly)

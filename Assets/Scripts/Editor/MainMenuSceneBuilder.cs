@@ -210,10 +210,12 @@ namespace CookingSystem.EditorTools
             Stretch(menuGroup);
             CanvasGroup menuCanvasGroup = GetOrAdd<CanvasGroup>(menuGroup.gameObject);
 
-            Button startButton = AdoptMenuButton(canvasRect, menuGroup, "start", "StartCookingButton", -45f);
-            Button settingsButton = AdoptMenuButton(canvasRect, menuGroup, "settings", "SettingsButton", -165f);
-            Button creditsButton = AdoptMenuButton(canvasRect, menuGroup, "credits", "CreditsButton", -285f);
-            Button exitButton = AdoptMenuButton(canvasRect, menuGroup, "exit", "ExitButton", -405f);
+            Button startButton = AdoptMenuButton(canvasRect, menuGroup, "start", "StartCookingButton", -8f, 72f);
+            Button endlessButton = AdoptOrCreateEndlessButton(menuGroup, startButton, -92f, 72f, out TMP_Text endlessTitleLbl, out TMP_Text endlessStatusLbl);
+            Button leaderboardButton = AdoptOrCreateMenuSubButton(menuGroup, startButton, "LeaderboardButton", "Leaderboard", -176f, 72f);
+            Button settingsButton = AdoptMenuButton(canvasRect, menuGroup, "settings", "SettingsButton", -260f, 72f);
+            Button creditsButton = AdoptMenuButton(canvasRect, menuGroup, "credits", "CreditsButton", -344f, 72f);
+            Button exitButton = AdoptMenuButton(canvasRect, menuGroup, "exit", "ExitButton", -428f, 72f);
 
             if (startButton == null || settingsButton == null || exitButton == null)
             {
@@ -223,12 +225,14 @@ namespace CookingSystem.EditorTools
 
             // CanvasGroups on each button for individual alpha fading during the staggered pan
             GetOrAdd<CanvasGroup>(startButton.gameObject);
+            if (endlessButton != null) GetOrAdd<CanvasGroup>(endlessButton.gameObject);
+            if (leaderboardButton != null) GetOrAdd<CanvasGroup>(leaderboardButton.gameObject);
             GetOrAdd<CanvasGroup>(settingsButton.gameObject);
             GetOrAdd<CanvasGroup>(creditsButton.gameObject);
             GetOrAdd<CanvasGroup>(exitButton.gameObject);
 
             // Top-to-bottom order so automatic keyboard/gamepad navigation feels natural.
-            foreach (Button button in new[] { startButton, settingsButton, creditsButton, exitButton })
+            foreach (Button button in new[] { startButton, endlessButton, leaderboardButton, settingsButton, creditsButton, exitButton })
             {
                 if (button != null) button.transform.SetAsLastSibling();
             }
@@ -243,7 +247,7 @@ namespace CookingSystem.EditorTools
             if (buttonsProp != null)
             {
                 buttonsProp.ClearArray();
-                Button[] orderedButtons = new[] { startButton, settingsButton, creditsButton, exitButton };
+                Button[] orderedButtons = new[] { startButton, endlessButton, leaderboardButton, settingsButton, creditsButton, exitButton };
                 for (int i = 0; i < orderedButtons.Length; i++)
                 {
                     if (orderedButtons[i] != null)
@@ -291,6 +295,10 @@ namespace CookingSystem.EditorTools
             var so = new SerializedObject(manager);
             SetRef(so, "mainMenuGroup", menuCanvasGroup);
             SetRef(so, "startCookingButton", startButton);
+            SetRef(so, "endlessModeButton", endlessButton);
+            SetRef(so, "endlessButtonLabel", endlessTitleLbl);
+            SetRef(so, "endlessStatusLabel", endlessStatusLbl);
+            SetRef(so, "leaderboardButton", leaderboardButton);
             SetRef(so, "settingsButton", settingsButton);
             SetRef(so, "exitButton", exitButton);
             SetRef(so, "creditsButton", creditsButton);
@@ -310,6 +318,7 @@ namespace CookingSystem.EditorTools
             SetRef(so, "cancelQuitButton", quit.Cancel);
             so.FindProperty("gameplaySceneName").stringValue = "gamescene";
             so.FindProperty("loadingSceneName").stringValue = "loadingscreen";
+            so.FindProperty("leaderboardSceneName").stringValue = "leaderboardscene";
             so.FindProperty("useLoadingScreen").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -333,7 +342,7 @@ namespace CookingSystem.EditorTools
             scaler.matchWidthOrHeight = 0.5f;
         }
 
-        private static Button AdoptMenuButton(Transform canvas, RectTransform menuGroup, string oldName, string newName, float anchoredY)
+        private static Button AdoptMenuButton(Transform canvas, RectTransform menuGroup, string oldName, string newName, float anchoredY, float buttonHeight = 88f)
         {
             Transform target = menuGroup.Find(newName);
             if (target == null)
@@ -355,7 +364,7 @@ namespace CookingSystem.EditorTools
             btnRect.anchorMax = new Vector2(0.5f, 0.5f);
             btnRect.pivot = new Vector2(0.5f, 0.5f);
             btnRect.anchoredPosition = new Vector2(0f, anchoredY);
-            btnRect.sizeDelta = new Vector2(460f, 88f);
+            btnRect.sizeDelta = new Vector2(460f, buttonHeight);
 
             Image btnImage = target.GetComponent<Image>();
             if (btnImage != null)
@@ -385,6 +394,185 @@ namespace CookingSystem.EditorTools
             ConfigureHover(button, Color.white, CozyButtonHoverTint, CozyButtonPressedTint,
                 null, 1.08f, cozyWoodButtonSprite, cozyWoodButtonPressedSprite);
             return button;
+        }
+
+        private static Button AdoptOrCreateEndlessButton(
+            RectTransform menuGroup,
+            Button templateButton,
+            float anchoredY,
+            float buttonHeight,
+            out TMP_Text titleLabel,
+            out TMP_Text statusLabel)
+        {
+            titleLabel = null;
+            statusLabel = null;
+            if (templateButton == null) return null;
+
+            Transform existing = menuGroup.Find("EndlessModeButton");
+            GameObject btnGo;
+            if (existing != null)
+            {
+                btnGo = existing.gameObject;
+            }
+            else
+            {
+                btnGo = Object.Instantiate(templateButton.gameObject, menuGroup, false);
+                btnGo.name = "EndlessModeButton";
+            }
+
+            Button button = btnGo.GetComponent<Button>();
+            RectTransform btnRect = (RectTransform)btnGo.transform;
+            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRect.pivot = new Vector2(0.5f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(0f, anchoredY);
+            btnRect.sizeDelta = new Vector2(460f, buttonHeight);
+
+            Image btnImage = btnGo.GetComponent<Image>();
+            if (btnImage != null)
+            {
+                btnImage.sprite = cozyWoodButtonSprite ?? roundedSprite;
+                btnImage.type = Image.Type.Sliced;
+                btnImage.pixelsPerUnitMultiplier = 0.35f;
+                btnImage.color = Color.white;
+            }
+
+            button.transition = Selectable.Transition.None;
+            // Ensure no stale sub-status object accumulates across rebuilds
+            Transform oldStatus = btnRect.Find("EndlessStatusLabel");
+            if (oldStatus != null) Object.DestroyImmediate(oldStatus.gameObject);
+
+            TMP_Text mainLbl = btnGo.GetComponentInChildren<TMP_Text>(true);
+            if (mainLbl != null)
+            {
+                mainLbl.raycastTarget = false;
+                if (font != null) mainLbl.font = font;
+                mainLbl.color = CozyButtonLabelColor;
+                mainLbl.fontSize = 36f;
+                mainLbl.alignment = TextAlignmentOptions.Center;
+                mainLbl.text = "Endless (Locked)";
+                RectTransform lr = mainLbl.rectTransform;
+                lr.anchorMin = new Vector2(0f, 0.32f);
+                lr.anchorMax = new Vector2(1f, 1f);
+                lr.offsetMin = Vector2.zero;
+                lr.offsetMax = Vector2.zero;
+                titleLabel = mainLbl;
+            }
+
+            RectTransform statusRect = CreateRect("EndlessStatusLabel", btnRect);
+            statusRect.anchorMin = new Vector2(0.05f, 0.04f);
+            statusRect.anchorMax = new Vector2(0.95f, 0.38f);
+            statusRect.offsetMin = Vector2.zero;
+            statusRect.offsetMax = Vector2.zero;
+            TextMeshProUGUI statusTmp = statusRect.gameObject.AddComponent<TextMeshProUGUI>();
+            if (font != null) statusTmp.font = font;
+            statusTmp.text = "Clear Day 3 to Unlock";
+            statusTmp.fontSize = 18f;
+            statusTmp.color = Hex("FFE6A7");
+            statusTmp.alignment = TextAlignmentOptions.Center;
+            statusTmp.raycastTarget = false;
+            statusLabel = statusTmp;
+
+            ConfigureHover(button, Color.white, CozyButtonHoverTint, CozyButtonPressedTint,
+                null, 1.08f, cozyWoodButtonSprite, cozyWoodButtonPressedSprite);
+            return button;
+        }
+
+        private static Button AdoptOrCreateMenuSubButton(
+            RectTransform menuGroup,
+            Button templateButton,
+            string objectName,
+            string labelText,
+            float anchoredY,
+            float buttonHeight)
+        {
+            if (templateButton == null) return null;
+
+            Transform existing = menuGroup.Find(objectName);
+            GameObject btnGo;
+            if (existing != null)
+            {
+                btnGo = existing.gameObject;
+            }
+            else
+            {
+                btnGo = Object.Instantiate(templateButton.gameObject, menuGroup, false);
+                btnGo.name = objectName;
+            }
+
+            Button button = btnGo.GetComponent<Button>();
+            RectTransform btnRect = (RectTransform)btnGo.transform;
+            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRect.pivot = new Vector2(0.5f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(0f, anchoredY);
+            btnRect.sizeDelta = new Vector2(460f, buttonHeight);
+
+            Image btnImage = btnGo.GetComponent<Image>();
+            if (btnImage != null)
+            {
+                btnImage.sprite = cozyWoodButtonSprite ?? roundedSprite;
+                btnImage.type = Image.Type.Sliced;
+                btnImage.pixelsPerUnitMultiplier = 0.35f;
+                btnImage.color = Color.white;
+            }
+
+            button.transition = Selectable.Transition.None;
+            TMP_Text mainLbl = btnGo.GetComponentInChildren<TMP_Text>(true);
+            if (mainLbl != null)
+            {
+                mainLbl.raycastTarget = false;
+                if (font != null) mainLbl.font = font;
+                mainLbl.color = CozyButtonLabelColor;
+                mainLbl.fontSize = 38f;
+                mainLbl.alignment = TextAlignmentOptions.Center;
+                mainLbl.text = labelText;
+                RectTransform lr = mainLbl.rectTransform;
+                lr.anchorMin = Vector2.zero;
+                lr.anchorMax = Vector2.one;
+                lr.offsetMin = new Vector2(0f, 4f);
+                lr.offsetMax = new Vector2(0f, 4f);
+            }
+
+            ConfigureHover(button, Color.white, CozyButtonHoverTint, CozyButtonPressedTint,
+                null, 1.08f, cozyWoodButtonSprite, cozyWoodButtonPressedSprite);
+            return button;
+        }
+
+        public static void EnsureEndlessMenuUpgraded()
+        {
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (!System.IO.File.Exists(BuildSceneListSetup.MainMenuScenePath)) return;
+
+            Scene active = SceneManager.GetActiveScene();
+            if (active.IsValid() && active.isLoaded && active.path == BuildSceneListSetup.MainMenuScenePath)
+            {
+                if (active.isDirty) return;
+                bool hasUpgrades = active.GetRootGameObjects().Any(r =>
+                    r.transform.Find("MainMenuGroup/EndlessModeButton") != null &&
+                    r.transform.Find("MainMenuGroup/LeaderboardButton") != null);
+                if (!hasUpgrades && Build(active))
+                {
+                    EditorSceneManager.SaveScene(active);
+                    Debug.Log("[MainMenuSceneBuilder] Added EndlessModeButton & LeaderboardButton to mainmenuscene.unity.");
+                }
+                return;
+            }
+
+            string raw = System.IO.File.ReadAllText(BuildSceneListSetup.MainMenuScenePath);
+            if (!raw.Contains("EndlessModeButton") || !raw.Contains("LeaderboardButton"))
+            {
+                Scene menuScene = EditorSceneManager.OpenScene(BuildSceneListSetup.MainMenuScenePath, OpenSceneMode.Additive);
+                if (menuScene.IsValid() && Build(menuScene))
+                {
+                    EditorSceneManager.SaveScene(menuScene);
+                    Debug.Log("[MainMenuSceneBuilder] Upgraded mainmenuscene.unity in background with Endless & Leaderboard buttons.");
+                }
+                if (menuScene.IsValid())
+                {
+                    EditorSceneManager.CloseScene(menuScene, true);
+                }
+            }
         }
 
         #endregion
@@ -1161,6 +1349,7 @@ namespace CookingSystem.EditorTools
             LoadingScenePath,
             MainMenuScenePath,
             "Assets/Scenes/gamescene.unity",
+            "Assets/Scenes/UpgradeShopScene.unity",
             "Assets/Scenes/leaderboardscene.unity",
             "Assets/Scenes/creditsscene.unity",
         };
@@ -1170,7 +1359,13 @@ namespace CookingSystem.EditorTools
             EditorApplication.delayCall += () =>
             {
                 SanitizePlayerSettings();
-                if (EditorBuildSettings.scenes.Length == 0) AddGameScenes();
+                bool missingSceneInBuildList = DefaultScenePaths.Any(p =>
+                    System.IO.File.Exists(p) && !EditorBuildSettings.scenes.Any(s => s.path == p));
+                if (EditorBuildSettings.scenes.Length == 0 || missingSceneInBuildList)
+                {
+                    AddGameScenes();
+                }
+                MainMenuSceneBuilder.EnsureEndlessMenuUpgraded();
             };
         }
 

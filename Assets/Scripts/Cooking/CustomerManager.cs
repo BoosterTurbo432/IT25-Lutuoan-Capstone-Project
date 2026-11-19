@@ -13,7 +13,8 @@ namespace CookingSystem
 
     /// <summary>
     /// Manages spawning customers into the 3 CustomerSlotUIs with randomized orders
-    /// (MealOnly, DrinkOnly, MealAndDrink) and relays stove fire penalties.
+    /// (MealOnly, DrinkOnly, MealAndDrink), applies Hospitality upgrade bonuses,
+    /// and scales spawn/patience pressure dynamically across Days 1-3 and Endless Mode.
     /// </summary>
     public class CustomerManager : MonoBehaviour
     {
@@ -26,7 +27,7 @@ namespace CookingSystem
         [SerializeField] private List<CustomerCharacterEntry> characterRoster = new List<CustomerCharacterEntry>();
 
         [Header("Spawning")]
-        [SerializeField] private float initialSpawnDelay = 1.2f;
+        [SerializeField] private float initialSpawnDelay = 1.0f;
         [SerializeField] private float spawnInterval = 6.5f;
         [SerializeField] private float basePatienceSeconds = 58f;
 
@@ -42,6 +43,10 @@ namespace CookingSystem
         private float spawnTimer;
         private int totalSpawned;
         private bool spawningEnabled = true;
+        private float mealOnlyChance = 0.45f;
+        private float drinkOnlyChance = 0.25f;
+        private float hospitalityPatienceMult = 1f;
+        private int activeRecipeUnlockDay = 1;
 
         private void Awake()
         {
@@ -71,8 +76,41 @@ namespace CookingSystem
                 if (customerSlots[i] != null) customerSlots[i].InitializeEmpty();
             }
 
-            // Start with 2 staggered customers quickly so the player immediately has orders
             spawnTimer = initialSpawnDelay;
+        }
+
+        public void ConfigureForSession(GameMode mode, int day, SaveData save)
+        {
+            hospitalityPatienceMult = ProgressionConfig.GetCustomerPatienceMultiplier(save);
+
+            if (mode == GameMode.Endless)
+            {
+                activeRecipeUnlockDay = 3;
+                initialSpawnDelay = 0.8f;
+                UpdateEndlessDifficulty(0);
+            }
+            else
+            {
+                activeRecipeUnlockDay = Mathf.Clamp(day, 1, 3);
+                DayShiftConfig cfg = ProgressionConfig.GetDayConfig(day);
+                initialSpawnDelay = cfg.initialSpawnDelay;
+                spawnInterval = cfg.spawnInterval;
+                basePatienceSeconds = cfg.basePatienceSeconds * hospitalityPatienceMult;
+                mealOnlyChance = cfg.mealOnlyWeight;
+                drinkOnlyChance = cfg.drinkOnlyWeight;
+            }
+
+            spawnTimer = initialSpawnDelay;
+        }
+
+        public void UpdateEndlessDifficulty(int rushTier)
+        {
+            spawnInterval = ProgressionConfig.GetEndlessSpawnInterval(rushTier);
+            float baseSeconds = ProgressionConfig.GetEndlessBasePatience(rushTier);
+            basePatienceSeconds = baseSeconds * hospitalityPatienceMult;
+            ProgressionConfig.GetEndlessOrderWeights(rushTier, out mealOnlyChance, out drinkOnlyChance);
+
+            spawnTimer = Mathf.Min(spawnTimer, spawnInterval * 0.6f);
         }
 
         private void Update()
@@ -84,7 +122,8 @@ namespace CookingSystem
             if (spawnTimer <= 0f)
             {
                 bool spawned = TrySpawnCustomer();
-                spawnTimer = spawned && GetOccupiedCount() < 2 ? 2.2f : spawnInterval;
+                float quickFillDelay = Mathf.Min(2.2f, spawnInterval * 0.45f);
+                spawnTimer = spawned && GetOccupiedCount() < 2 ? quickFillDelay : spawnInterval;
             }
         }
 
@@ -103,7 +142,9 @@ namespace CookingSystem
 
             CustomerSlotUI target = freeSlots[UnityEngine.Random.Range(0, freeSlots.Count)];
             OrderType orderType = RollOrderType();
-            RecipeDefinition recipe = orderType == OrderType.DrinkOnly ? null : RecipeDatabase.GetRandomRecipe();
+            RecipeDefinition recipe = orderType == OrderType.DrinkOnly
+                ? null
+                : RecipeDatabase.GetRandomRecipeForDay(activeRecipeUnlockDay);
             DrinkType drink = orderType == OrderType.MealOnly
                 ? DrinkType.None
                 : (UnityEngine.Random.value < 0.5f ? DrinkType.BerryJuice : DrinkType.CalamansiTea);
@@ -152,11 +193,11 @@ namespace CookingSystem
             return count;
         }
 
-        private static OrderType RollOrderType()
+        private OrderType RollOrderType()
         {
             float r = UnityEngine.Random.value;
-            if (r < 0.45f) return OrderType.MealOnly;
-            if (r < 0.70f) return OrderType.DrinkOnly;
+            if (r < mealOnlyChance) return OrderType.MealOnly;
+            if (r < mealOnlyChance + drinkOnlyChance) return OrderType.DrinkOnly;
             return OrderType.MealAndDrink;
         }
     }

@@ -19,6 +19,11 @@ namespace CookingSystem
         [SerializeField] private Sprite overrideIconSprite;
         [SerializeField] private Vector2 overrideIconSize = Vector2.zero;
 
+        [Header("Ingredient Identity Override (Day 2/3 Expansions)")]
+        [SerializeField] private bool useIngredientIdentityOverride;
+        [SerializeField] private IngredientType overrideIngredientType = IngredientType.Tomato;
+        [SerializeField] private string overrideIngredientName;
+
         [Header("Visual Feedback")]
         [Tooltip("Optional UI fill image showing cooldown progress (0 to 1).")]
         [SerializeField] private Image cooldownOverlay;
@@ -73,13 +78,20 @@ namespace CookingSystem
 
         private void ApplyIconOverride(DraggableIngredient ingredient)
         {
-            if (ingredient == null || overrideIconSprite == null) return;
-            var img = ingredient.GetComponent<Image>();
-            if (img != null)
+            if (ingredient == null) return;
+            if (useIngredientIdentityOverride)
             {
-                img.sprite = overrideIconSprite;
-                img.color = Color.white;
-                img.preserveAspect = true;
+                ingredient.ConfigureIdentity(overrideIngredientType, overrideIngredientName);
+            }
+            if (overrideIconSprite != null)
+            {
+                var img = ingredient.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.sprite = overrideIconSprite;
+                    img.color = Color.white;
+                    img.preserveAspect = true;
+                }
             }
             if (overrideIconSize != Vector2.zero)
             {
@@ -135,6 +147,16 @@ namespace CookingSystem
             if (currentIngredient != null)
             {
                 currentIngredient.SetRestPosition(anchoredPosition);
+            }
+        }
+
+        public void SetOverrideIconSize(Vector2 size)
+        {
+            overrideIconSize = size;
+            if (currentIngredient != null && size != Vector2.zero)
+            {
+                var rt = currentIngredient.GetComponent<RectTransform>();
+                if (rt != null) rt.sizeDelta = size;
             }
         }
 

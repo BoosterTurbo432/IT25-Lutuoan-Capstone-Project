@@ -23,6 +23,10 @@ namespace CookingSystem.UI
         [Tooltip("CanvasGroup wrapping all main menu buttons. Made non-interactable while any popup is open.")]
         [SerializeField] private CanvasGroup mainMenuGroup;
         [SerializeField] private Button startCookingButton;
+        [SerializeField] private Button endlessModeButton;
+        [SerializeField] private TMP_Text endlessButtonLabel;
+        [SerializeField] private TMP_Text endlessStatusLabel;
+        [SerializeField] private Button leaderboardButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button exitButton;
         [Tooltip("Optional.")]
@@ -58,6 +62,7 @@ namespace CookingSystem.UI
         [SerializeField] private string gameplaySceneName = "gamescene";
         [Tooltip("Dedicated loading screen scene for smooth transitions. If empty or not loadable, loads gameplay scene directly.")]
         [SerializeField] private string loadingSceneName = "loadingscreen";
+        [SerializeField] private string leaderboardSceneName = "leaderboardscene";
         [Tooltip("Whether transitions to the gameplay scene route through the dedicated loading screen.")]
         [SerializeField] private bool useLoadingScreen = true;
 
@@ -87,6 +92,8 @@ namespace CookingSystem.UI
         private void Awake()
         {
             Bind(startCookingButton, OpenPlayConfiguration);
+            Bind(endlessModeButton, StartEndlessMode);
+            Bind(leaderboardButton, OpenLeaderboard);
             Bind(settingsButton, OpenSettings);
             Bind(exitButton, OpenQuitConfirmation);
             Bind(creditsButton, OpenCredits);
@@ -125,6 +132,7 @@ namespace CookingSystem.UI
                 popup.HideInstant();
             }
 
+            RefreshEndlessAvailability();
             RefreshMainMenuInteractivity();
         }
 
@@ -186,7 +194,35 @@ namespace CookingSystem.UI
                 return;
             }
 
+            GameLaunchOptions.SelectedMode = GameMode.CampaignDay;
+            GameLaunchOptions.SelectedDay = 0;
             LoadGameplayScene(true);
+        }
+
+        public void StartEndlessMode()
+        {
+            if (isLoadingScene || !CanLoadGameplayScene()) return;
+            if (!SaveSystem.TryLoad(out SaveData save) || !save.endlessModeUnlocked)
+            {
+                RefreshEndlessAvailability();
+                return;
+            }
+
+            GameLaunchOptions.SelectedMode = GameMode.Endless;
+            GameLaunchOptions.SelectedDay = 0;
+            LoadingBridge.CustomStatusMessage = "Entering Endless Rush...";
+            LoadGameplayScene(true);
+        }
+
+        public void OpenLeaderboard()
+        {
+            if (isLoadingScene) return;
+            if (Application.CanStreamedLevelBeLoaded(leaderboardSceneName))
+            {
+                SceneManager.LoadScene(leaderboardSceneName);
+                return;
+            }
+            Debug.LogWarning($"[MainMenuManager] Scene '{leaderboardSceneName}' is not in Build Profiles.", this);
         }
 
         public void QuitGame()
@@ -302,6 +338,28 @@ namespace CookingSystem.UI
 
         #region Play Configuration
 
+        private void RefreshEndlessAvailability()
+        {
+            bool unlocked = SaveSystem.TryPeek(out SaveData save) && save.endlessModeUnlocked;
+
+            if (endlessModeButton != null)
+            {
+                endlessModeButton.interactable = unlocked;
+            }
+
+            if (endlessButtonLabel != null)
+            {
+                endlessButtonLabel.text = unlocked ? "Endless Mode" : "Endless (Locked)";
+            }
+
+            if (endlessStatusLabel != null)
+            {
+                endlessStatusLabel.text = unlocked
+                    ? $"Best: {save.endlessBestServed} Served  |  {save.endlessHighScore} pts"
+                    : "Clear Day 3 to Unlock";
+            }
+        }
+
         private void RefreshSaveAvailability()
         {
             bool hasSave = SaveSystem.TryPeek(out SaveData save);
@@ -313,11 +371,15 @@ namespace CookingSystem.UI
                 saveInfoLabel.gameObject.SetActive(hasSave);
                 if (hasSave) saveInfoLabel.text = DescribeSave(save);
             }
+
+            RefreshEndlessAvailability();
         }
 
         private static string DescribeSave(SaveData save)
         {
-            string description = $"Day {save.currentDay}";
+            string description = save.endlessModeUnlocked
+                ? $"Day {save.currentDay}  |  SP: {save.skillPoints}  |  Endless Unlocked"
+                : $"Day {save.currentDay}/3  |  SP: {save.skillPoints}";
             if (save.TryGetLastSavedLocalTime(out DateTime savedAt))
             {
                 description += $"  |  Saved {savedAt:MMM d, h:mm tt}";
@@ -334,6 +396,8 @@ namespace CookingSystem.UI
             SaveSystem.StartNewGame();
             SaveSystem.Save();
 
+            GameLaunchOptions.SelectedMode = GameMode.CampaignDay;
+            GameLaunchOptions.SelectedDay = 1;
             LoadGameplayScene(false);
         }
 

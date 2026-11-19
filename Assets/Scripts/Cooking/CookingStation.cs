@@ -108,7 +108,9 @@ namespace CookingSystem
 
         public CookwareType Cookware => cookwareType;
         public bool RequirePrepStation => requirePrepStation;
-        public float BurnDuration => burnDuration;
+        public float BurnDuration => EffectiveBurnDuration;
+        public float EffectiveCookDuration => Mathf.Max(1.2f, cookDuration * ProgressionConfig.GetCookDurationMultiplier(SaveSystem.Current));
+        public float EffectiveBurnDuration => burnDuration + ProgressionConfig.GetBurnGraceBonusSeconds(SaveSystem.Current);
         public float CurrentBurnProgress => currentBurnProgress;
 
         // Runtime state
@@ -320,11 +322,12 @@ namespace CookingSystem
             currentState = CookingStationState.Cooking;
             onCookingStarted?.Invoke();
 
+            float targetCookDuration = EffectiveCookDuration;
             float elapsed = 0f;
-            while (elapsed < cookDuration)
+            while (elapsed < targetCookDuration)
             {
                 elapsed += Time.deltaTime;
-                float progress = Mathf.Clamp01(elapsed / cookDuration);
+                float progress = Mathf.Clamp01(elapsed / targetCookDuration);
                 UpdateProgressUI(progress);
                 onCookingProgress?.Invoke(progress);
                 yield return null;
@@ -337,12 +340,13 @@ namespace CookingSystem
 
             if (canBurn)
             {
+                float targetBurnDuration = EffectiveBurnDuration;
                 float burnElapsed = 0f;
-                while (burnElapsed < burnDuration)
+                while (burnElapsed < targetBurnDuration)
                 {
                     if (currentState != CookingStationState.Cooked) yield break;
                     burnElapsed += Time.deltaTime;
-                    currentBurnProgress = Mathf.Clamp01(burnElapsed / burnDuration);
+                    currentBurnProgress = Mathf.Clamp01(burnElapsed / targetBurnDuration);
                     onBurnWarningProgress?.Invoke(currentBurnProgress);
                     yield return null;
                 }

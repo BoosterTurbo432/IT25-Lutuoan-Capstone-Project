@@ -19,6 +19,7 @@ namespace CookingSystem
     public static class SaveSystem
     {
         public const string SaveFileName = "savegame.json";
+        private const string BrowserSaveKey = "lutuoan_savegame_v2";
 
         private static string GetSaveDirectory()
         {
@@ -49,10 +50,10 @@ namespace CookingSystem
             Loaded = null;
         }
 
-        /// <summary>True if a save (or its backup) exists on disk.</summary>
+        /// <summary>True if a save (file or browser storage) exists.</summary>
         public static bool HasSave()
         {
-            return File.Exists(SaveFilePath) || File.Exists(BackupFilePath);
+            return File.Exists(SaveFilePath) || File.Exists(BackupFilePath) || BrowserStorageBridge.HasKey(BrowserSaveKey);
         }
 
         /// <summary>Starts a fresh in-memory session. Nothing is written until <see cref="Save"/> is called.</summary>
@@ -98,6 +99,8 @@ namespace CookingSystem
                 File.Copy(TempFilePath, savePath, true);                                    // 3. Swap in the new save.
                 File.Delete(TempFilePath);
 
+                BrowserStorageBridge.SetString(BrowserSaveKey, json);
+
                 Saved?.Invoke(Current);
                 return true;
             }
@@ -118,26 +121,39 @@ namespace CookingSystem
             return true;
         }
 
-        /// <summary>Reads the save from disk without making it active (e.g. to show "Last saved" in a menu).</summary>
+        /// <summary>Reads the save without making it active (file first, then browser storage fallback).</summary>
         public static bool TryPeek(out SaveData data)
         {
-            if (TryReadFile(SaveFilePath, out data)) return true;
-
-            if (TryReadFile(BackupFilePath, out data))
+            if (TryReadJson(BrowserStorageBridge.GetString(BrowserSaveKey, string.Empty), out data))
             {
-                Debug.LogWarning("[SaveSystem] Main save unreadable, recovered from backup.");
+#if UNITY_WEBGL && !UNITY_EDITOR
+                return true;
+#endif
+            }
+
+            if (TryReadFile(SaveFilePath, out SaveData fileData))
+            {
+                data = fileData;
                 return true;
             }
 
-            return false;
+            if (TryReadFile(BackupFilePath, out SaveData bakData))
+            {
+                Debug.LogWarning("[SaveSystem] Main save unreadable, recovered from backup.");
+                data = bakData;
+                return true;
+            }
+
+            return data != null;
         }
 
-        /// <summary>Deletes the save, its backup, and clears the active session.</summary>
+        /// <summary>Deletes the save, its backup, browser storage mirror, and clears the active session.</summary>
         public static void Delete()
         {
             TryDeleteFile(SaveFilePath);
             TryDeleteFile(BackupFilePath);
             TryDeleteFile(TempFilePath);
+            BrowserStorageBridge.DeleteKey(BrowserSaveKey);
             Current = null;
         }
 
@@ -148,18 +164,31 @@ namespace CookingSystem
 
             try
             {
-                string json = File.ReadAllText(path);
-                if (string.IsNullOrWhiteSpace(json)) return false;
+                return TryReadJson(File.ReadAllText(path), out data);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[SaveSystem] Could not read '{path}': {exception.Message}");
+                data = null;
+                return false;
+            }
+        }
 
+        private static bool TryReadJson(string json, out SaveData data)
+        {
+            data = null;
+            if (string.IsNullOrWhiteSpace(json)) return false;
+
+            try
+            {
                 data = JsonUtility.FromJson<SaveData>(json);
                 if (data == null) return false;
 
                 data.Upgrade();
                 return true;
             }
-            catch (Exception exception)
+            catch
             {
-                Debug.LogWarning($"[SaveSystem] Could not read '{path}': {exception.Message}");
                 data = null;
                 return false;
             }

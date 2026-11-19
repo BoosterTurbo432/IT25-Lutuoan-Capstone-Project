@@ -12,7 +12,7 @@ namespace CookingSystem
     [Serializable]
     public class SaveData
     {
-        public const int LatestVersion = 1;
+        public const int LatestVersion = 2;
 
         // --- Meta ---
         public int version = LatestVersion;
@@ -20,8 +20,19 @@ namespace CookingSystem
         public string lastSavedAtUtc;
         public float totalPlayTimeSeconds;
 
-        // --- Progress (placeholder fields, extend as gameplay grows) ---
+        // --- Progress ---
         public int currentDay = 1;
+        public int highestDayCleared;
+        public int skillPoints;
+        public bool endlessModeUnlocked;
+        public int endlessHighScore;
+        public int endlessBestServed;
+
+        // --- Carinderia Kitchen Upgrades (Ranks 0..3) ---
+        public int prepMasteryLevel;
+        public int fastBurnerLevel;
+        public int hospitalityLevel;
+
         public int coins;
         public int highScore;
         public int dishesServed;
@@ -55,9 +66,13 @@ namespace CookingSystem
             unlockedRecipes ??= new List<string>();
             completedLessons ??= new List<string>();
             if (currentDay < 1) currentDay = 1;
-
-            // Future migrations go here, e.g.:
-            // if (version < 2) { newField = DefaultValue; }
+            if (currentDay > 3) currentDay = 3;
+            if (highestDayCleared < 0) highestDayCleared = 0;
+            if (skillPoints < 0) skillPoints = 0;
+            prepMasteryLevel = Math.Max(0, Math.Min(3, prepMasteryLevel));
+            fastBurnerLevel = Math.Max(0, Math.Min(3, fastBurnerLevel));
+            hospitalityLevel = Math.Max(0, Math.Min(3, hospitalityLevel));
+            if (highestDayCleared >= 3) endlessModeUnlocked = true;
 
             version = LatestVersion;
         }

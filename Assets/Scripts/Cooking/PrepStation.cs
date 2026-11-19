@@ -55,6 +55,14 @@ namespace CookingSystem
         [SerializeField] private Sprite cheeseSprite;
         [SerializeField] private Sprite meatSprite;
         [SerializeField] private Sprite mushroomSprite;
+        [SerializeField] private Sprite onionSprite;
+        [SerializeField] private Sprite herbsSprite;
+        [SerializeField] private Sprite garlicSprite;
+        [SerializeField] private Sprite potatoSprite;
+        [SerializeField] private Sprite cabbageSprite;
+        [SerializeField] private Sprite carrotsSprite;
+        [SerializeField] private Sprite porkSprite;
+        [SerializeField] private Sprite bellPepperSprite;
 
         private readonly List<IngredientType> currentIngredients = new List<IngredientType>();
         private PrepStage currentStage = PrepStage.CollectingIngredients;
@@ -63,6 +71,9 @@ namespace CookingSystem
         private float chopScore;
         private float mixScore;
         private float cursorPhase;
+        private float sweetSpotHalfWidth = 0.16f;
+        private float yellowHalfWidth = 0.32f;
+        private float effectiveSweepSpeed = 1.45f;
 
         public PrepStage CurrentStage => currentStage;
 
@@ -82,14 +93,35 @@ namespace CookingSystem
 
         private void Start()
         {
+            ApplyUpgradeBonuses();
             RefreshUI();
+        }
+
+        private void ApplyUpgradeBonuses()
+        {
+            SaveData save = SaveSystem.GetOrCreateCurrent();
+            sweetSpotHalfWidth = ProgressionConfig.GetPrepSweetSpotHalfWidth(save);
+            yellowHalfWidth = ProgressionConfig.GetPrepYellowHalfWidth(save);
+            effectiveSweepSpeed = cursorSweepSpeed * ProgressionConfig.GetPrepCursorSpeedMultiplier(save);
+
+            if (precisionBarRoot != null)
+            {
+                Transform sweetTransform = precisionBarRoot.transform.Find("SweetSpotZone");
+                if (sweetTransform is RectTransform sweetRect)
+                {
+                    float targetWidth = Mathf.Clamp(barTravelWidth * (sweetSpotHalfWidth * 2f), 60f, barTravelWidth);
+                    sweetRect.sizeDelta = new Vector2(targetWidth, sweetRect.sizeDelta.y);
+                }
+            }
         }
 
         private void Update()
         {
+            if (LevelGameManager.Instance != null && LevelGameManager.Instance.IsTutorialOpen) return;
+
             if (currentStage == PrepStage.Chopping || currentStage == PrepStage.Mixing)
             {
-                cursorPhase += Time.deltaTime * cursorSweepSpeed;
+                cursorPhase += Time.deltaTime * effectiveSweepSpeed;
                 float normalized = Mathf.PingPong(cursorPhase, 1f);
                 if (precisionCursor != null)
                 {
@@ -226,9 +258,9 @@ namespace CookingSystem
         {
             float normalized = Mathf.PingPong(cursorPhase, 1f);
             float distanceFromCenter = Mathf.Abs(normalized - 0.5f);
-            if (distanceFromCenter <= 0.16f) return 1.0f;   // Green sweet spot
-            if (distanceFromCenter <= 0.32f) return 0.78f;  // Yellow zone
-            return 0.52f;                                   // Outer edge
+            if (distanceFromCenter <= sweetSpotHalfWidth) return 1.0f;   // Green sweet spot (upgradable)
+            if (distanceFromCenter <= yellowHalfWidth) return 0.80f;     // Yellow zone (upgradable)
+            return 0.55f;                                                 // Outer edge
         }
 
         private static float EvaluateSpeedFactor(float elapsed, float targetSeconds)
@@ -328,6 +360,14 @@ namespace CookingSystem
                 IngredientType.Cheese => cheeseSprite,
                 IngredientType.Meat => meatSprite,
                 IngredientType.Mushroom => mushroomSprite,
+                IngredientType.Onion => onionSprite,
+                IngredientType.Herbs => herbsSprite,
+                IngredientType.Garlic => garlicSprite,
+                IngredientType.Potato => potatoSprite,
+                IngredientType.Cabbage => cabbageSprite,
+                IngredientType.Carrots => carrotsSprite,
+                IngredientType.Pork => porkSprite,
+                IngredientType.BellPepper => bellPepperSprite,
                 _ => null
             };
         }
