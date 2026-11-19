@@ -11,11 +11,12 @@ Lutuoan
 5. Luke Acosta
 
 ## Description
-Lutuoan is a Unity 2D carinderia cooking and time-management game where players prep ingredients, cook dishes in pots and pans, pour drinks, and serve customers before their patience runs out while managing burning cookware with a fire extinguisher. The game features a 3-day campaign progression loop (Opening Shift, Lunch Rush, and Fiesta Peak) with a Day 1 tutorial, a kitchen Upgrade Shop (`UpgradeShopScene`) powered by earned Skill Points, and an unlockable Endless Mode with dynamic rush tiers, 3 lives, and a persistent Top-10 leaderboard.
+Lutuoan (v1.0) is a Unity 2D carinderia cooking and time-management game with an official WebGL release build (`Build/WebGL/`) configured for both desktop and mobile browsers. Players prep ingredients, cook dishes in pots and pans, pour drinks, and serve customers before their patience runs out while managing burning cookware with a fire extinguisher. The game features a 3-day campaign progression loop (Opening Shift, Lunch Rush, and Fiesta Peak) with a Day 1 tutorial, a kitchen Upgrade Shop (`UpgradeShopScene`) powered by earned Skill Points, and an unlockable Endless Mode with dynamic rush tiers, 3 lives, and a persistent Top-10 leaderboard.
 
 ## Tools Used
-- Unity `6000.6.7f1` (2D URP, Input System, uGUI, TextMeshPro)
+- Unity `6000.6.7f1` (2D URP, Input System, uGUI, TextMeshPro, WebGL Build Profiles)
 - C#
+- Custom Responsive WebGL Template (`Assets/WebGLTemplates/Responsive/index.html`, WebGL 2, Gzip compression with decompression fallback)
 - Local JSON & Browser Storage (`SaveSystem` and `BrowserStorageBridge`)
 - Firebase Unity SDK `14.1.0` (bundled in `Assets/Firebase`)
 - Git, Git LFS & GitHub Desktop
@@ -39,9 +40,14 @@ Lutuoan is a Unity 2D carinderia cooking and time-management game where players 
   - Recorded UTC timestamp
 
 ## How to Run
+### Option 1: Official WebGL Release Build (`Build/WebGL/`)
+1. Serve the `Build/WebGL/` folder over HTTP/HTTPS (using Unity **Build And Run**, a local HTTP server such as `python -m http.server` inside `Build/WebGL`, GitHub Pages, or itch.io).
+2. Open the hosted URL in a desktop or mobile browser with WebGL 2 enabled (do not open `index.html` directly via `file://`).
+
+### Option 2: Unity Editor
 1. Ensure Git LFS is installed (`git lfs install` and `git lfs pull`) before opening the repository.
 2. Open the project in Unity `6000.6.7f1`.
-3. Open `Assets/Scenes/loadingscreen.unity` or `Assets/Scenes/mainmenuscene.unity`.
+3. Open `Assets/Scenes/loadingscreen.unity` or `Assets/Scenes/mainmenuscene.unity` (or select one of the Web Build Profiles in `Assets/Settings/Build Profiles/` to export a new build).
 4. Press **Play**.
 5. Click **Start Cooking** and choose **New Game** (or **Load Save**) to play the 3-day campaign, or select **Endless Mode** once unlocked by clearing Day 3.
 6. Drag ingredients to the prep station, cook them in the pot or pan, pour drinks at the dispenser, and serve orders to customers (use the fire extinguisher if food burns).
@@ -54,8 +60,9 @@ Lutuoan is a Unity 2D carinderia cooking and time-management game where players 
 
 ## Known Limitations
 - Save data and the Top-10 Endless leaderboard are stored locally per device or browser (`savegame.json`, `PlayerPrefs`, and WebGL `localStorage`/IDBFS); online leaderboard syncing and user authentication are not yet active (the Firebase SDK in `Assets/Firebase` is not wired into runtime scripts).
+- WebGL release builds require a browser with WebGL 2 support and must be served over HTTP/HTTPS (opening `Build/WebGL/index.html` directly over `file://` is blocked by browsers).
 - Campaign mode currently covers Days 1–3 (`Opening Shift`, `Lunch Rush`, `Fiesta Peak`) plus Endless Mode; three additional upgrade cards in `UpgradeShopScene` are locked previews for future versions.
-- No Internet connection is required; the game is fully playable offline.
+- No Internet connection is required after loading; the game is playable offline.
 
 ## References
 List all tutorials, documentation, or guides used.
