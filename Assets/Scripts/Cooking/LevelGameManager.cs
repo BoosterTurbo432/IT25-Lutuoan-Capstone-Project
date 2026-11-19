@@ -24,6 +24,9 @@ namespace CookingSystem
 
         [Header("HUD References")]
         [SerializeField] private TextMeshProUGUI timerText;
+        [SerializeField] private Image timerFillBar;
+        [SerializeField] private RectTransform timerThumbRect;
+        [SerializeField] private float timerTrackWidth = 160f;
         [SerializeField] private TextMeshProUGUI scoreText;
         [SerializeField] private TextMeshProUGUI ordersText;
         [SerializeField] private TextMeshProUGUI comboText;
@@ -206,7 +209,7 @@ namespace CookingSystem
 
             if (summaryTitleText != null)
             {
-                summaryTitleText.text = completedQuota ? "SHIFT COMPLETE!" : "TIME'S UP!";
+                summaryTitleText.text = completedQuota ? "Shift Complete!" : "Time's Up!";
             }
 
             if (summaryBreakdownText != null)
@@ -223,7 +226,7 @@ namespace CookingSystem
 
             if (summaryFinalScoreText != null)
             {
-                summaryFinalScoreText.text = $"FINAL SCORE: {totalScore}";
+                summaryFinalScoreText.text = $"Final Score: {totalScore}";
             }
 
             RefreshHud();
@@ -247,27 +250,50 @@ namespace CookingSystem
                 string formatted = FormatTime(remainingTime);
                 if (remainingTime <= 30f && isLevelActive)
                 {
-                    timerText.text = $"<color=#EF4444>TIME {formatted}</color>";
+                    timerText.text = $"<color=#EF4444>Time: {formatted}</color>";
                 }
                 else
                 {
-                    timerText.text = $"TIME {formatted}";
+                    timerText.text = $"Time: {formatted}";
+                }
+            }
+
+            if (timerFillBar != null && levelDurationSeconds > 0f)
+            {
+                float ratio = Mathf.Clamp01(remainingTime / levelDurationSeconds);
+                timerFillBar.fillAmount = ratio;
+                if (ratio > 0.5f)
+                {
+                    timerFillBar.color = new Color(0.20f, 0.80f, 0.40f, 1f);
+                }
+                else if (ratio > 0.25f)
+                {
+                    timerFillBar.color = new Color(0.96f, 0.72f, 0.14f, 1f);
+                }
+                else
+                {
+                    timerFillBar.color = new Color(0.94f, 0.27f, 0.27f, 1f);
+                }
+                if (timerThumbRect != null)
+                {
+                    float x = Mathf.Lerp(-timerTrackWidth * 0.5f, timerTrackWidth * 0.5f, ratio);
+                    timerThumbRect.anchoredPosition = new Vector2(x, timerThumbRect.anchoredPosition.y);
                 }
             }
 
             if (scoreText != null)
             {
-                scoreText.text = $"SCORE: {totalScore}";
+                scoreText.text = $"Score: {totalScore}";
             }
 
             if (ordersText != null)
             {
-                ordersText.text = $"ORDERS: {customersCompletedCount}/{shiftCustomerQuota}";
+                ordersText.text = $"Orders: {customersCompletedCount}/{shiftCustomerQuota}";
             }
 
             if (comboText != null)
             {
-                comboText.text = currentStreak > 1 ? $"STREAK x{currentStreak}" : "STREAK x1";
+                comboText.text = currentStreak > 1 ? $"Streak x{currentStreak}" : "Streak x1";
             }
         }
 

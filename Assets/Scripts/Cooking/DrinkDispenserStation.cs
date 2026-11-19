@@ -22,6 +22,8 @@ namespace CookingSystem
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private Button stagePendingDrinkButton;
         [SerializeField] private FoodDisplayTray displayTray;
+        [SerializeField] private GameObject berryPourIndicator;
+        [SerializeField] private GameObject calamansiPourIndicator;
 
         private bool isPouring;
         private DrinkType pendingDrink = DrinkType.None;
@@ -56,6 +58,8 @@ namespace CookingSystem
         private IEnumerator PourRoutine(DrinkType drink)
         {
             isPouring = true;
+            if (berryPourIndicator != null) berryPourIndicator.SetActive(drink == DrinkType.BerryJuice);
+            if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(drink == DrinkType.CalamansiTea);
             string drinkName = RecipeDatabase.GetDrinkDisplayName(drink);
             UpdateStatus($"Pouring {drinkName}...");
 
@@ -71,6 +75,8 @@ namespace CookingSystem
             }
 
             if (pourProgressFill != null) pourProgressFill.fillAmount = 0f;
+            if (berryPourIndicator != null) berryPourIndicator.SetActive(false);
+            if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(false);
             isPouring = false;
 
             if (displayTray != null && displayTray.TryPlaceDrink(drink))

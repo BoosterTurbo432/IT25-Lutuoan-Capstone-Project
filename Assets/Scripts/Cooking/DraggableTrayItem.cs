@@ -27,6 +27,11 @@ namespace CookingSystem
         [SerializeField] private TextMeshProUGUI badgeText;
         [SerializeField] private float snapBackDuration = 0.16f;
 
+        [Header("2D Artwork Sprites")]
+        [SerializeField] private Sprite mealTraySprite;
+        [SerializeField] private Sprite berryDrinkSprite;
+        [SerializeField] private Sprite calamansiDrinkSprite;
+
         private RectTransform rectTransform;
         private CanvasGroup canvasGroup;
         private Canvas rootCanvas;
@@ -75,13 +80,22 @@ namespace CookingSystem
 
             if (iconImage != null && payload != null)
             {
-                iconImage.color = payload.placeholderColor;
+                if (mealTraySprite != null)
+                {
+                    iconImage.sprite = mealTraySprite;
+                    iconImage.color = Color.white;
+                    iconImage.preserveAspect = true;
+                }
+                else
+                {
+                    iconImage.color = payload.placeholderColor;
+                }
             }
 
             if (badgeText != null && payload != null)
             {
-                string tag = payload.cookwareUsed == CookwareType.Pot ? "POT" : "PAN";
-                badgeText.text = $"{tag}\n{payload.CombinedQuality * 100f:F0}%";
+                string tag = payload.cookwareUsed == CookwareType.Pot ? "Pot" : "Pan";
+                badgeText.text = $"{tag} {payload.CombinedQuality * 100f:F0}%";
             }
 
             ResetVisualState();
@@ -98,12 +112,22 @@ namespace CookingSystem
 
             if (iconImage != null)
             {
-                iconImage.color = RecipeDatabase.GetDrinkColor(drink);
+                Sprite drinkSprite = drink == DrinkType.CalamansiTea ? calamansiDrinkSprite : berryDrinkSprite;
+                if (drinkSprite != null)
+                {
+                    iconImage.sprite = drinkSprite;
+                    iconImage.color = Color.white;
+                    iconImage.preserveAspect = true;
+                }
+                else
+                {
+                    iconImage.color = RecipeDatabase.GetDrinkColor(drink);
+                }
             }
 
             if (badgeText != null)
             {
-                badgeText.text = "DRINK";
+                badgeText.text = "Drink";
             }
 
             ResetVisualState();

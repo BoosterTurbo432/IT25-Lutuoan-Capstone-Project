@@ -48,6 +48,14 @@ namespace CookingSystem
         [Header("Output Draggable Token")]
         [SerializeField] private DraggablePreparedDish preparedDishToken;
 
+        [Header("Board Ingredient Slots (Optional 2D Icons)")]
+        [SerializeField] private Image[] ingredientSlotIcons;
+        [SerializeField] private TextMeshProUGUI[] ingredientSlotLabels;
+        [SerializeField] private Sprite tomatoSprite;
+        [SerializeField] private Sprite cheeseSprite;
+        [SerializeField] private Sprite meatSprite;
+        [SerializeField] private Sprite mushroomSprite;
+
         private readonly List<IngredientType> currentIngredients = new List<IngredientType>();
         private PrepStage currentStage = PrepStage.CollectingIngredients;
         private float stageStartTime;
@@ -236,11 +244,11 @@ namespace CookingSystem
             {
                 if (currentIngredients.Count == 0)
                 {
-                    ingredientsSummaryText.text = "BOARD: EMPTY (Drop 1-3 Items)";
+                    ingredientsSummaryText.text = "Board: Drop 1-3 Items";
                 }
                 else
                 {
-                    ingredientsSummaryText.text = "BOARD: " + string.Join(" + ", currentIngredients);
+                    ingredientsSummaryText.text = "Board: " + string.Join(" + ", currentIngredients);
                 }
             }
 
@@ -248,11 +256,11 @@ namespace CookingSystem
             {
                 stageStatusText.text = currentStage switch
                 {
-                    PrepStage.CollectingIngredients => "DRAG INGREDIENTS HERE ->",
-                    PrepStage.Chopping => "CLICK CHOP ON GREEN!",
-                    PrepStage.Mixing => $"CHOP {chopScore * 100f:F0}% | CLICK MIX!",
-                    PrepStage.AssigningCookware => $"MIX {mixScore * 100f:F0}% | PICK POT/PAN",
-                    PrepStage.ReadyForStove => "DRAG TOKEN -> STOVE!",
+                    PrepStage.CollectingIngredients => "Drag Ingredients Here",
+                    PrepStage.Chopping => "Click Chop on Green!",
+                    PrepStage.Mixing => $"Chop {chopScore * 100f:F0}% | Click Mix!",
+                    PrepStage.AssigningCookware => $"Mix {mixScore * 100f:F0}% | Pick Pot or Pan",
+                    PrepStage.ReadyForStove => "Drag Vessel to Stove!",
                     _ => string.Empty
                 };
             }
@@ -280,6 +288,48 @@ namespace CookingSystem
             {
                 resetPrepButton.interactable = currentIngredients.Count > 0 || currentStage != PrepStage.CollectingIngredients;
             }
+
+            if (ingredientSlotIcons != null)
+            {
+                for (int i = 0; i < ingredientSlotIcons.Length; i++)
+                {
+                    Image slotImg = ingredientSlotIcons[i];
+                    TextMeshProUGUI slotLbl = ingredientSlotLabels != null && i < ingredientSlotLabels.Length ? ingredientSlotLabels[i] : null;
+                    bool hasIng = i < currentIngredients.Count;
+
+                    if (slotImg != null)
+                    {
+                        if (hasIng)
+                        {
+                            slotImg.sprite = GetSpriteForIngredient(currentIngredients[i]);
+                            slotImg.color = Color.white;
+                            slotImg.preserveAspect = true;
+                            slotImg.enabled = slotImg.sprite != null;
+                        }
+                        else
+                        {
+                            slotImg.enabled = false;
+                        }
+                    }
+
+                    if (slotLbl != null)
+                    {
+                        slotLbl.gameObject.SetActive(!hasIng);
+                    }
+                }
+            }
+        }
+
+        private Sprite GetSpriteForIngredient(IngredientType type)
+        {
+            return type switch
+            {
+                IngredientType.Tomato => tomatoSprite,
+                IngredientType.Cheese => cheeseSprite,
+                IngredientType.Meat => meatSprite,
+                IngredientType.Mushroom => mushroomSprite,
+                _ => null
+            };
         }
     }
 }

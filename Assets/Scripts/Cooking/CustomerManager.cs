@@ -1,8 +1,16 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace CookingSystem
 {
+    [Serializable]
+    public class CustomerCharacterEntry
+    {
+        public string characterName;
+        public Sprite portraitSprite;
+    }
+
     /// <summary>
     /// Manages spawning customers into the 3 CustomerSlotUIs with randomized orders
     /// (MealOnly, DrinkOnly, MealAndDrink) and relays stove fire penalties.
@@ -13,6 +21,9 @@ namespace CookingSystem
 
         [Header("Customer Slots")]
         [SerializeField] private List<CustomerSlotUI> customerSlots = new List<CustomerSlotUI>();
+
+        [Header("2D Customer Characters")]
+        [SerializeField] private List<CustomerCharacterEntry> characterRoster = new List<CustomerCharacterEntry>();
 
         [Header("Spawning")]
         [SerializeField] private float initialSpawnDelay = 1.2f;
@@ -90,17 +101,28 @@ namespace CookingSystem
 
             if (freeSlots.Count == 0) return false;
 
-            CustomerSlotUI target = freeSlots[Random.Range(0, freeSlots.Count)];
+            CustomerSlotUI target = freeSlots[UnityEngine.Random.Range(0, freeSlots.Count)];
             OrderType orderType = RollOrderType();
             RecipeDefinition recipe = orderType == OrderType.DrinkOnly ? null : RecipeDatabase.GetRandomRecipe();
             DrinkType drink = orderType == OrderType.MealOnly
                 ? DrinkType.None
-                : (Random.value < 0.5f ? DrinkType.BerryJuice : DrinkType.CalamansiTea);
+                : (UnityEngine.Random.value < 0.5f ? DrinkType.BerryJuice : DrinkType.CalamansiTea);
 
             Color paletteColor = CustomerPalette[totalSpawned % CustomerPalette.Length];
+            string charName = null;
+            Sprite charSprite = null;
+            if (characterRoster != null && characterRoster.Count > 0)
+            {
+                CustomerCharacterEntry entry = characterRoster[totalSpawned % characterRoster.Count];
+                if (entry != null)
+                {
+                    charName = entry.characterName;
+                    charSprite = entry.portraitSprite;
+                }
+            }
             totalSpawned++;
 
-            target.AssignOrder(orderType, recipe, drink, paletteColor, basePatienceSeconds);
+            target.AssignOrder(orderType, recipe, drink, paletteColor, basePatienceSeconds, charName, charSprite);
             return true;
         }
 
@@ -132,7 +154,7 @@ namespace CookingSystem
 
         private static OrderType RollOrderType()
         {
-            float r = Random.value;
+            float r = UnityEngine.Random.value;
             if (r < 0.45f) return OrderType.MealOnly;
             if (r < 0.70f) return OrderType.DrinkOnly;
             return OrderType.MealAndDrink;

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace CookingSystem
 {
@@ -8,10 +9,35 @@ namespace CookingSystem
     /// discarded prepared vessels, or unwanted plated items from the Food Display Tray.
     /// </summary>
     [DisallowMultipleComponent]
-    public class TrashCanDropZone : MonoBehaviour, IDropHandler
+    public class TrashCanDropZone : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler
     {
+        [Header("2D State Sprites")]
+        [SerializeField] private Image trashImage;
+        [SerializeField] private Sprite closedSprite;
+        [SerializeField] private Sprite openSprite;
+
+        private void Awake()
+        {
+            SetOpenVisual(false);
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (eventData.pointerDrag == null) return;
+            if (IsAcceptableDrag(eventData.pointerDrag))
+            {
+                SetOpenVisual(true);
+            }
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            SetOpenVisual(false);
+        }
+
         public void OnDrop(PointerEventData eventData)
         {
+            SetOpenVisual(false);
             if (eventData.pointerDrag == null) return;
 
             if (eventData.pointerDrag.TryGetComponent<DraggableBurntFood>(out var burntFood))
@@ -39,6 +65,24 @@ namespace CookingSystem
             {
                 rawIngredient.NotifyAcceptedByStation(null);
                 Destroy(rawIngredient.gameObject);
+            }
+        }
+
+        private static bool IsAcceptableDrag(GameObject dragged)
+        {
+            return dragged.GetComponent<DraggableBurntFood>() != null ||
+                   dragged.GetComponent<DraggablePreparedDish>() != null ||
+                   dragged.GetComponent<DraggableTrayItem>() != null ||
+                   dragged.GetComponent<DraggableIngredient>() != null;
+        }
+
+        private void SetOpenVisual(bool open)
+        {
+            if (trashImage == null) return;
+            Sprite target = open ? openSprite : closedSprite;
+            if (target != null)
+            {
+                trashImage.sprite = target;
             }
         }
     }

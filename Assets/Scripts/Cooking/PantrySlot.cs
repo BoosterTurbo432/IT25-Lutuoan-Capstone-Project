@@ -16,6 +16,8 @@ namespace CookingSystem
         [SerializeField] private float restockDuration = 3f;
 
         [SerializeField] private Vector2 spawnAnchoredPosition = new Vector2(0f, 10f);
+        [SerializeField] private Sprite overrideIconSprite;
+        [SerializeField] private Vector2 overrideIconSize = Vector2.zero;
 
         [Header("Visual Feedback")]
         [Tooltip("Optional UI fill image showing cooldown progress (0 to 1).")]
@@ -65,6 +67,24 @@ namespace CookingSystem
             if (currentIngredient != null)
             {
                 currentIngredient.onAccepted += HandleIngredientConsumed;
+                ApplyIconOverride(currentIngredient);
+            }
+        }
+
+        private void ApplyIconOverride(DraggableIngredient ingredient)
+        {
+            if (ingredient == null || overrideIconSprite == null) return;
+            var img = ingredient.GetComponent<Image>();
+            if (img != null)
+            {
+                img.sprite = overrideIconSprite;
+                img.color = Color.white;
+                img.preserveAspect = true;
+            }
+            if (overrideIconSize != Vector2.zero)
+            {
+                var rt = ingredient.GetComponent<RectTransform>();
+                if (rt != null) rt.sizeDelta = overrideIconSize;
             }
         }
 

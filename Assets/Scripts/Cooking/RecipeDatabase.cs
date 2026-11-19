@@ -73,8 +73,8 @@ namespace CookingSystem
         {
             new RecipeDefinition
             {
-                recipeId = "tomato_soup",
-                displayName = "Classic Tomato Soup",
+                recipeId = "sinigang_kamatis",
+                displayName = "Sinigang sa Kamatis",
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Tomato, IngredientType.Tomato },
                 basePoints = 150,
@@ -82,8 +82,8 @@ namespace CookingSystem
             },
             new RecipeDefinition
             {
-                recipeId = "mushroom_chowder",
-                displayName = "Mushroom Cheese Chowder",
+                recipeId = "kabute_keso_pot",
+                displayName = "Creamy Kabute & Keso",
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Mushroom, IngredientType.Cheese },
                 basePoints = 180,
@@ -91,8 +91,8 @@ namespace CookingSystem
             },
             new RecipeDefinition
             {
-                recipeId = "beef_stew",
-                displayName = "Hearty Beef Stew",
+                recipeId = "beef_mechado",
+                displayName = "Mechado w/ Kabute",
                 requiredCookware = CookwareType.Pot,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Tomato, IngredientType.Mushroom },
                 basePoints = 250,
@@ -100,8 +100,8 @@ namespace CookingSystem
             },
             new RecipeDefinition
             {
-                recipeId = "cheesy_tomato_melt",
-                displayName = "Cheesy Tomato Melt",
+                recipeId = "cheesy_ginisang_kamatis",
+                displayName = "Cheesy Ginisang Kamatis",
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Tomato, IngredientType.Cheese },
                 basePoints = 180,
@@ -109,8 +109,8 @@ namespace CookingSystem
             },
             new RecipeDefinition
             {
-                recipeId = "steak_mushroom",
-                displayName = "Seared Steak & Mushroom",
+                recipeId = "pinoy_mushroom_steak",
+                displayName = "Pinoy Mushroom Steak",
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Mushroom },
                 basePoints = 210,
@@ -118,8 +118,8 @@ namespace CookingSystem
             },
             new RecipeDefinition
             {
-                recipeId = "meat_skillet",
-                displayName = "Savory Meat Skillet",
+                recipeId = "cheesy_kaldereta",
+                displayName = "Cheesy Kaldereta",
                 requiredCookware = CookwareType.Pan,
                 requiredIngredients = new List<IngredientType> { IngredientType.Meat, IngredientType.Cheese, IngredientType.Tomato },
                 basePoints = 260,
@@ -199,9 +199,40 @@ namespace CookingSystem
 
         public static string GetFallbackDishName(IReadOnlyList<IngredientType> ingredients, CookwareType cookware)
         {
-            if (ingredients == null || ingredients.Count == 0) return "House Special";
-            string suffix = cookware == CookwareType.Pot ? "Soup" : "Skillet";
-            return $"Chef's {ingredients[0]} {suffix}";
+            if (ingredients == null || ingredients.Count == 0) return "Carinderia Special Ulam";
+
+            bool hasTomato = false;
+            bool hasCheese = false;
+            bool hasMeat = false;
+            bool hasMushroom = false;
+
+            for (int i = 0; i < ingredients.Count; i++)
+            {
+                switch (ingredients[i])
+                {
+                    case IngredientType.Tomato: hasTomato = true; break;
+                    case IngredientType.Cheese: hasCheese = true; break;
+                    case IngredientType.Meat: hasMeat = true; break;
+                    case IngredientType.Mushroom: hasMushroom = true; break;
+                }
+            }
+
+            if (hasMeat && hasTomato && hasCheese) return "Cheesy Kaldereta";
+            if (hasMeat && hasTomato && hasMushroom) return "Mechado w/ Kabute";
+            if (hasMeat && hasMushroom && hasCheese) return "Creamy Mushroom Bistek";
+            if (hasTomato && hasCheese && hasMushroom) return "Cheesy Kamatis-Kabute Gisa";
+            if (hasMeat && hasMushroom) return "Pinoy Mushroom Steak";
+            if (hasTomato && hasCheese) return "Cheesy Ginisang Kamatis";
+            if (hasTomato && hasMushroom) return "Ginisang Kamatis & Kabute";
+            if (hasMeat && hasTomato) return "Pork Menudillo";
+            if (hasCheese && hasMushroom) return "Creamy Kabute & Keso";
+            if (hasMeat && hasCheese) return "Cheesy Sisig";
+            if (hasMeat) return cookware == CookwareType.Pot ? "Nilagang Baka" : "Bistek Tagalog";
+            if (hasTomato) return cookware == CookwareType.Pot ? "Sinigang sa Kamatis" : "Sarsyadong Kamatis";
+            if (hasCheese) return cookware == CookwareType.Pot ? "Mainit na Keso Soup" : "Pinoy Kesong Melt";
+            if (hasMushroom) return cookware == CookwareType.Pot ? "Sabaw ng Kabute" : "Ginisang Kabute";
+
+            return "Lutong Bahay Special";
         }
 
         public static Color GetFallbackColor(IReadOnlyList<IngredientType> ingredients)

@@ -18,6 +18,8 @@ namespace CookingSystem
         [Header("UI Visuals")]
         [SerializeField] private Image iconImage;
         [SerializeField] private TextMeshProUGUI labelText;
+        [SerializeField] private Sprite potSprite;
+        [SerializeField] private Sprite panSprite;
         [SerializeField] private float snapBackDuration = 0.18f;
 
         private RectTransform rectTransform;
@@ -60,12 +62,22 @@ namespace CookingSystem
 
             if (iconImage != null && payload != null)
             {
-                iconImage.color = payload.placeholderColor;
+                Sprite vessel = payload.cookwareUsed == CookwareType.Pan ? panSprite : potSprite;
+                if (vessel != null)
+                {
+                    iconImage.sprite = vessel;
+                    iconImage.color = Color.white;
+                    iconImage.preserveAspect = true;
+                }
+                else
+                {
+                    iconImage.color = payload.placeholderColor;
+                }
             }
 
             if (labelText != null && payload != null)
             {
-                string vesselTag = payload.cookwareUsed == CookwareType.Pot ? "POT" : "PAN";
+                string vesselTag = payload.cookwareUsed == CookwareType.Pot ? "Pot" : "Pan";
                 labelText.text = $"{vesselTag}\n{payload.prepQuality * 100f:F0}%";
             }
 

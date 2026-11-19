@@ -18,6 +18,7 @@ namespace CookingSystem
         [SerializeField] private Image cardBackground;
         [SerializeField] private Image dropHighlightBorder;
         [SerializeField] private GameObject customerVisualRoot;
+        [SerializeField] private Image customerPortraitImage;
         [SerializeField] private Image[] customerBodyImages;
         [SerializeField] private Image orderBubbleRoot;
 
@@ -25,6 +26,7 @@ namespace CookingSystem
         [SerializeField] private TMP_Text slotLabelText;
         [SerializeField] private TMP_Text orderTitleText;
         [SerializeField] private TMP_Text mealOrderText;
+        [SerializeField] private TMP_Text mealIngredientsText;
         [SerializeField] private TMP_Text drinkOrderText;
         [SerializeField] private TMP_Text feedbackText;
 
@@ -37,9 +39,9 @@ namespace CookingSystem
         [SerializeField] private float drinkFreezeDuration = 10f;
         [SerializeField] [Range(0.05f, 0.5f)] private float drinkRestoreFraction = 0.25f;
 
-        private Color defaultCardColor = new Color(0.24f, 0.20f, 0.19f, 1f);
-        private Color hoverCardColor = new Color(0.32f, 0.27f, 0.23f, 1f);
-        private Color emptyCardColor = new Color(0.18f, 0.16f, 0.15f, 0.65f);
+        private Color defaultCardColor = new Color(0.18f, 0.13f, 0.10f, 0.28f);
+        private Color hoverCardColor = new Color(0.28f, 0.22f, 0.16f, 0.55f);
+        private Color emptyCardColor = new Color(0.15f, 0.11f, 0.09f, 0.14f);
 
         private bool isOccupied;
         private bool isLeaving;
@@ -111,7 +113,14 @@ namespace CookingSystem
             RefreshPatienceUI(paused: false);
         }
 
-        public void AssignOrder(OrderType type, RecipeDefinition recipe, DrinkType drink, Color customerColor, float customPatience = -1f)
+        public void AssignOrder(
+            OrderType type,
+            RecipeDefinition recipe,
+            DrinkType drink,
+            Color customerColor,
+            float customPatience = -1f,
+            string customerDisplayName = null,
+            Sprite customerPortrait = null)
         {
             if (leaveCoroutine != null)
             {
@@ -140,22 +149,49 @@ namespace CookingSystem
             if (dropHighlightBorder != null) dropHighlightBorder.enabled = false;
             if (cardBackground != null) cardBackground.color = defaultCardColor;
 
+            if (customerPortraitImage != null)
+            {
+                if (customerPortrait != null)
+                {
+                    customerPortraitImage.sprite = customerPortrait;
+                    customerPortraitImage.color = Color.white;
+                    customerPortraitImage.preserveAspect = true;
+                    customerPortraitImage.enabled = true;
+                }
+                else
+                {
+                    customerPortraitImage.enabled = false;
+                }
+            }
+
             if (customerBodyImages != null)
             {
+                bool showSilhouette = customerPortrait == null;
                 for (int i = 0; i < customerBodyImages.Length; i++)
                 {
-                    if (customerBodyImages[i] != null) customerBodyImages[i].color = customerColor;
+                    if (customerBodyImages[i] != null)
+                    {
+                        customerBodyImages[i].enabled = showSilhouette;
+                        customerBodyImages[i].color = customerColor;
+                    }
                 }
             }
 
             if (slotLabelText != null)
             {
-                slotLabelText.text = type switch
+                if (!string.IsNullOrEmpty(customerDisplayName))
                 {
-                    OrderType.MealAndDrink => $"Customer {slotIndex}  [COMBO ORDER]",
-                    OrderType.DrinkOnly => $"Customer {slotIndex}  [DRINK ORDER]",
-                    _ => $"Customer {slotIndex}  [MEAL ORDER]"
-                };
+                    slotLabelText.text = customerDisplayName;
+                }
+                else
+                {
+                    slotLabelText.text = type switch
+                    {
+                        OrderType.MealAndDrink => $"Customer {slotIndex}  [COMBO ORDER]",
+                        OrderType.DrinkOnly => $"Customer {slotIndex}  [DRINK ORDER]",
+                        _ => $"Customer {slotIndex}  [MEAL ORDER]"
+                    };
+                }
             }
 
             if (feedbackText != null) feedbackText.text = string.Empty;
@@ -254,14 +290,14 @@ namespace CookingSystem
 
             LevelGameManager.Instance?.RegisterMealDelivery(awardedBase, quality, satisfaction);
 
-            string qualityTag = satisfaction >= 0.85f ? "PERFECT!" : (accuracy >= 0.99f ? "GREAT!" : "WRONG DISH");
+            string qualityTag = satisfaction >= 0.85f ? "Perfect!" : (accuracy >= 0.99f ? "Great!" : "Wrong Dish");
             Color msgColor = satisfaction >= 0.7f ? new Color(0.22f, 0.80f, 0.46f, 1f) : new Color(0.96f, 0.62f, 0.14f, 1f);
 
             if (orderType == OrderType.MealAndDrink && drinkDelivered)
             {
                 LevelGameManager.Instance?.RegisterComboCompletion();
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                BeginLeave($"{qualityTag} + COMBO!\nSatisfaction {satisfaction * 100f:F0}%", msgColor);
+                BeginLeave($"{qualityTag} + Combo!\nSatisfaction {satisfaction * 100f:F0}%", msgColor);
                 DishNotificationUI.Instance?.ShowNotification($"Combo Order Served! Satisfaction: {satisfaction * 100f:F0}%");
             }
             else if (orderType == OrderType.MealOnly)
@@ -322,7 +358,7 @@ namespace CookingSystem
             {
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: satisfaction);
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                string tag = exactDrink ? "REFRESHED!" : "WRONG DRINK";
+                string tag = exactDrink ? "Refreshed!" : "Wrong Drink";
                 Color c = exactDrink ? new Color(0.22f, 0.80f, 0.46f, 1f) : new Color(0.96f, 0.62f, 0.14f, 1f);
                 BeginLeave($"{tag}\nSatisfaction {satisfaction * 100f:F0}%", c);
                 DishNotificationUI.Instance?.ShowNotification($"Served {RecipeDatabase.GetDrinkDisplayName(trayItem.DrinkKind)}!");
@@ -332,7 +368,7 @@ namespace CookingSystem
                 // Meal was already delivered -> drink completes combo!
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: true, satisfaction: satisfaction);
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                string tag = exactDrink ? "COMBO COMPLETE! +120" : "SERVED + COMBO!";
+                string tag = exactDrink ? "Combo Complete! +120" : "Served + Combo!";
                 BeginLeave($"{tag}\nDrink Match {drinkAccuracy * 100f:F0}%", new Color(0.22f, 0.80f, 0.46f, 1f));
                 DishNotificationUI.Instance?.ShowNotification($"Meal + Drink Combo Complete! (+120 Bonus)");
             }
@@ -391,9 +427,9 @@ namespace CookingSystem
             {
                 orderTitleText.text = orderType switch
                 {
-                    OrderType.MealAndDrink => "COMBO ORDER",
-                    OrderType.DrinkOnly => "DRINK ORDER",
-                    _ => "MEAL ORDER"
+                    OrderType.MealAndDrink => "Combo Order",
+                    OrderType.DrinkOnly => "Drink Order",
+                    _ => "Meal Order"
                 };
             }
 
@@ -401,16 +437,26 @@ namespace CookingSystem
             {
                 if (orderType == OrderType.DrinkOnly)
                 {
-                    mealOrderText.text = string.Empty;
+                    mealOrderText.text = mealIngredientsText != null ? "Drink Only" : string.Empty;
+                    if (mealIngredientsText != null) mealIngredientsText.text = "Quick Refresh";
                 }
                 else if (mealDelivered)
                 {
-                    mealOrderText.text = $"<s>{orderedRecipe.displayName}</s> <color=#16A34A>[OK]</color>";
+                    mealOrderText.text = $"<s>{orderedRecipe.displayName}</s>";
+                    if (mealIngredientsText != null) mealIngredientsText.text = "<color=#16A34A>Served [OK]</color>";
                 }
                 else
                 {
                     string ware = orderedRecipe.requiredCookware == CookwareType.Pot ? "Pot" : "Pan";
-                    mealOrderText.text = $"{orderedRecipe.displayName}\n<color=#334155>({orderedRecipe.GetIngredientSummary()} | {ware})</color>";
+                    if (mealIngredientsText != null)
+                    {
+                        mealOrderText.text = orderedRecipe.displayName;
+                        mealIngredientsText.text = $"{orderedRecipe.GetIngredientSummary()} | {ware}";
+                    }
+                    else
+                    {
+                        mealOrderText.text = $"{orderedRecipe.displayName}\n<color=#334155>({orderedRecipe.GetIngredientSummary()} | {ware})</color>";
+                    }
                 }
             }
 
@@ -418,7 +464,7 @@ namespace CookingSystem
             {
                 if (orderType == OrderType.MealOnly)
                 {
-                    drinkOrderText.text = string.Empty;
+                    drinkOrderText.text = mealIngredientsText != null ? "(No Drink)" : string.Empty;
                 }
                 else if (drinkDelivered)
                 {
@@ -460,7 +506,7 @@ namespace CookingSystem
             {
                 if (paused)
                 {
-                    patienceTimerText.text = $"PAUSED ({patienceFreezeTimer:F0}s)";
+                    patienceTimerText.text = $"Paused ({patienceFreezeTimer:F0}s)";
                 }
                 else
                 {

@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 namespace CookingSystem
 {
@@ -14,6 +15,9 @@ namespace CookingSystem
         [Header("UI References")]
         [SerializeField] private DraggableTrayItem draggableItem;
         [SerializeField] private TextMeshProUGUI labelText;
+        [SerializeField] private Image trayFrameImage;
+        [SerializeField] private Sprite closedLidSprite;
+        [SerializeField] private Sprite openTraySprite;
 
         [Header("Display Settings")]
         [SerializeField] private string defaultLabel = "Tray Slot";
@@ -39,9 +43,14 @@ namespace CookingSystem
                 draggableItem.ConfigureMeal(payload, this);
             }
 
+            if (trayFrameImage != null && openTraySprite != null)
+            {
+                trayFrameImage.sprite = openTraySprite;
+            }
+
             if (labelText != null)
             {
-                labelText.text = $"{payload.dishName}\n<color=#FDE047>DRAG -> CUSTOMER</color>";
+                labelText.text = $"{payload.dishName}\n<color=#FDE047>Drag to Customer</color>";
             }
         }
 
@@ -57,9 +66,14 @@ namespace CookingSystem
                 draggableItem.ConfigureDrink(drink, this);
             }
 
+            if (trayFrameImage != null && openTraySprite != null)
+            {
+                trayFrameImage.sprite = openTraySprite;
+            }
+
             if (labelText != null)
             {
-                labelText.text = $"{drinkName}\n<color=#FDE047>DRAG -> CUSTOMER</color>";
+                labelText.text = $"{drinkName}\n<color=#FDE047>Drag to Customer</color>";
             }
         }
 
@@ -70,6 +84,11 @@ namespace CookingSystem
 
             IsOccupied = false;
             CurrentDishName = string.Empty;
+
+            if (trayFrameImage != null && closedLidSprite != null)
+            {
+                trayFrameImage.sprite = closedLidSprite;
+            }
 
             if (draggableItem != null && draggableItem.Kind != TrayItemKind.None)
             {

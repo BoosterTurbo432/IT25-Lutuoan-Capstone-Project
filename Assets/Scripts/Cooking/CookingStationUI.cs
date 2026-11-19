@@ -24,6 +24,12 @@ namespace CookingSystem
         [Tooltip("Optional burn grace warning fill image (0..1).")]
         [SerializeField] private Image burnWarningFill;
 
+        [Header("2D Vessel State Sprites")]
+        [SerializeField] private Image vesselImage;
+        [SerializeField] private Sprite idleVesselSprite;
+        [SerializeField] private Sprite cookingVesselSprite;
+        [SerializeField] private Sprite burnedVesselSprite;
+
         private CookingStation station;
 
         private void Awake()
@@ -51,6 +57,7 @@ namespace CookingSystem
             }
 
             UpdateStatusText();
+            SetVesselSprite(idleVesselSprite);
         }
 
         private void OnEnable()
@@ -111,15 +118,20 @@ namespace CookingSystem
             {
                 statusText.text = $"<color=#FFA500>Cooking: {(progress * 100f):F0}%</color>";
             }
+            if (progress >= 0.35f)
+            {
+                SetVesselSprite(cookingVesselSprite);
+            }
         }
 
         private void OnCookingCompleted()
         {
+            SetVesselSprite(cookingVesselSprite);
             if (statusText != null)
             {
                 statusText.text = station.RequirePrepStation
-                    ? "<color=#00FF7F>READY! Click PLATE! (3s)</color>"
-                    : "<color=#00FF7F>Dish Ready! Click Serve to Reset</color>";
+                    ? "<color=#00FF7F>Ready! Click Plate! (3s)</color>"
+                    : "<color=#00FF7F>Dish Ready! Click Serve</color>";
             }
             if (cookButton != null)
             {
@@ -140,18 +152,19 @@ namespace CookingSystem
             if (statusText != null && station.CurrentState == CookingStationState.Cooked)
             {
                 float secondsLeft = Mathf.Max(0f, station.BurnDuration * (1f - progress));
-                statusText.text = $"<color=#F59E0B>PLATE NOW! Burn in {secondsLeft:F1}s</color>";
+                statusText.text = $"<color=#F59E0B>Plate Now! ({secondsLeft:F1}s)</color>";
             }
         }
 
         private void OnStoveCaughtFire()
         {
+            SetVesselSprite(burnedVesselSprite);
             if (burnWarningFill != null) burnWarningFill.fillAmount = 1f;
             if (cookButton != null) cookButton.gameObject.SetActive(false);
             if (serveButton != null) serveButton.gameObject.SetActive(false);
             if (statusText != null)
             {
-                statusText.text = "<color=#EF4444>FIRE! Drag Extinguisher!</color>";
+                statusText.text = "<color=#EF4444>Fire! Drag Extinguisher</color>";
             }
         }
 
@@ -160,12 +173,13 @@ namespace CookingSystem
             if (serveButton != null) serveButton.gameObject.SetActive(false);
             if (statusText != null)
             {
-                statusText.text = "<color=#FB923C>BURNT! Drag to Trash Can</color>";
+                statusText.text = "<color=#FB923C>Burnt! Drag to Trash</color>";
             }
         }
 
         private void OnFoodBurned()
         {
+            SetVesselSprite(burnedVesselSprite);
             if (station.CurrentState == CookingStationState.OnFire)
             {
                 OnStoveCaughtFire();
@@ -187,6 +201,7 @@ namespace CookingSystem
 
         private void OnStationReset()
         {
+            SetVesselSprite(idleVesselSprite);
             if (burnWarningFill != null) burnWarningFill.fillAmount = 0f;
             UpdateStatusText();
             UpdateCookButtonVisibility();
@@ -223,8 +238,18 @@ namespace CookingSystem
             if (statusText != null)
             {
                 statusText.text = station.RequirePrepStation
-                    ? $"DROP {station.Cookware.ToString().ToUpper()} HERE"
-                    : $"Ingredients: {station.IngredientCount} (Drop items to cook)";
+                    ? $"Drop {station.Cookware} Here"
+                    : $"Ingredients: {station.IngredientCount} (Drop to Cook)";
+            }
+        }
+
+        private void SetVesselSprite(Sprite sprite)
+        {
+            if (vesselImage != null && sprite != null)
+            {
+                vesselImage.sprite = sprite;
+                vesselImage.color = Color.white;
+                vesselImage.preserveAspect = true;
             }
         }
     }

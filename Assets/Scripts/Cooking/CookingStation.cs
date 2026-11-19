@@ -371,34 +371,15 @@ namespace CookingSystem
         /// </summary>
         public string GenerateDishName()
         {
-            if (currentIngredients.Count == 0) return "Chef's Secret Stew";
+            if (currentIngredients.Count == 0) return "Carinderia Special Ulam";
 
-            bool hasTomato = false;
-            bool hasCheese = false;
-            bool hasMeat = false;
-            bool hasMushroom = false;
-
+            var types = new List<IngredientType>(currentIngredients.Count);
             foreach (var ing in currentIngredients)
             {
-                if (ing == null) continue;
-                if (ing.Type == IngredientType.Tomato) hasTomato = true;
-                if (ing.Type == IngredientType.Cheese) hasCheese = true;
-                if (ing.Type == IngredientType.Meat) hasMeat = true;
-                if (ing.Type == IngredientType.Mushroom) hasMushroom = true;
+                if (ing != null) types.Add(ing.Type);
             }
 
-            if (hasTomato && hasMeat && hasCheese) return "Hearty Meat & Tomato Casserole";
-            if (hasMeat && hasMushroom) return "Savory Meat & Mushroom Stew";
-            if (hasTomato && hasCheese) return "Tomato & Cheese Delight";
-            if (hasTomato && hasMushroom) return "Rustic Mushroom Tomato Soup";
-            if (hasMeat && hasTomato) return "Hearty Tomato & Beef Pot";
-            if (hasCheese && hasMushroom) return "Creamy Cheese Mushroom Chowder";
-            if (hasMeat) return "Savory Braised Meat Soup";
-            if (hasTomato) return "Classic Tomato Bisque";
-            if (hasCheese) return "Rich Golden Cheese Fondue";
-            if (hasMushroom) return "Wild Woodland Mushroom Soup";
-
-            return "Special House Stew";
+            return RecipeDatabase.GetFallbackDishName(types, cookwareType);
         }
 
         /// <summary>

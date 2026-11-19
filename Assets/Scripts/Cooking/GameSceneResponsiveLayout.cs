@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CookingSystem.Core.Responsive;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,20 +5,21 @@ using UnityEngine.UI;
 namespace CookingSystem
 {
     /// <summary>
-    /// Switches gamescene.unity smoothly between Desktop/Mobile Landscape (1920x1080)
-    /// and Mobile/Narrow Portrait (1080x1920) based on the active browser/device viewport.
+    /// Switches gamescene.unity smoothly between the Carinderia Desktop/Landscape layout (1920x1080)
+    /// matching the visualization and Mobile/Narrow Portrait (1080x1920) based on the active viewport.
     /// </summary>
     [DisallowMultipleComponent]
     public class GameSceneResponsiveLayout : MonoBehaviour
     {
         [Header("Root Panels")]
+        [SerializeField] private RectTransform wallBackdrop;
         [SerializeField] private RectTransform topHudBar;
         [SerializeField] private RectTransform dishNotificationBanner;
         [SerializeField] private RectTransform customerZone;
         [SerializeField] private RectTransform countertopArea;
+        [SerializeField] private RectTransform plasticMatRect;
 
         [Header("Customer Zone")]
-        [SerializeField] private RectTransform customerHeader;
         [SerializeField] private RectTransform customerSlotsContainer;
         [SerializeField] private HorizontalLayoutGroup customerSlotsLayout;
         [SerializeField] private RectTransform serviceCounterLedge;
@@ -28,7 +28,9 @@ namespace CookingSystem
         [SerializeField] private RectTransform drinkDispenserZone;
         [SerializeField] private RectTransform ingredientTrayZone;
         [SerializeField] private RectTransform stoveAreaZone;
+        [SerializeField] private RectTransform stoveArtRoot;
         [SerializeField] private RectTransform utensilsStationZone;
+        [SerializeField] private RectTransform prepTrayRoot;
         [SerializeField] private RectTransform foodDisplayTrayZone;
         [SerializeField] private RectTransform utilitySafetyZone;
 
@@ -81,152 +83,116 @@ namespace CookingSystem
 
         private void ApplyLandscapeLayout()
         {
+            if (wallBackdrop != null)
+            {
+                SetBox(wallBackdrop, new Vector2(0f, 320f), new Vector2(2600f, 480f));
+            }
+
             if (topHudBar != null)
             {
-                SetBox(topHudBar, new Vector2(0f, 502f), new Vector2(1880f, 62f));
-                SetBox(topHudBar.Find("TimerText"), new Vector2(-720f, 0f), new Vector2(280f, 48f));
-                SetBox(topHudBar.Find("ScoreText"), new Vector2(-380f, 0f), new Vector2(280f, 48f));
-                SetBox(topHudBar.Find("OrdersText"), new Vector2(-30f, 0f), new Vector2(290f, 48f));
-                SetBox(topHudBar.Find("ComboText"), new Vector2(340f, 0f), new Vector2(340f, 48f));
-                SetBox(topHudBar.Find("RestartHudButton"), new Vector2(675f, 0f), new Vector2(146f, 42f));
-                SetBox(topHudBar.Find("MenuHudButton"), new Vector2(842f, 0f), new Vector2(156f, 42f));
+                SetBox(topHudBar, new Vector2(0f, 502f), new Vector2(1880f, 66f));
+                SetBox(topHudBar.Find("UI_ScorePill"), new Vector2(-710f, 0f), new Vector2(400f, 58f));
+                SetBox(topHudBar.Find("UI_TimerBarBg"), new Vector2(-40f, 0f), new Vector2(880f, 62f));
+                SetBox(topHudBar.Find("RestartHudButton"), new Vector2(545f, 0f), new Vector2(180f, 56f));
+                SetBox(topHudBar.Find("MenuHudButton"), new Vector2(745f, 0f), new Vector2(180f, 56f));
             }
 
             if (dishNotificationBanner != null)
             {
-                SetBox(dishNotificationBanner, new Vector2(0f, 456f), new Vector2(780f, 52f));
+                SetBox(dishNotificationBanner, new Vector2(0f, 444f), new Vector2(760f, 48f));
             }
 
             if (customerZone != null)
             {
                 SetBox(customerZone, new Vector2(0f, 294f), new Vector2(1880f, 336f));
-                SetBox(customerHeader, new Vector2(0f, 146f), new Vector2(1240f, 32f));
-                SetBox(customerSlotsContainer, new Vector2(0f, -10f), new Vector2(1680f, 272f));
+                SetBox(customerSlotsContainer, new Vector2(0f, -2f), new Vector2(1680f, 276f));
                 if (customerSlotsLayout != null) customerSlotsLayout.spacing = 120f;
-                SetBox(serviceCounterLedge, new Vector2(0f, -158f), new Vector2(1880f, 20f));
+                SetBox(serviceCounterLedge, new Vector2(0f, -158f), new Vector2(2600f, 24f));
                 ApplyCustomerSlotCards(portrait: false);
             }
 
             if (countertopArea != null)
             {
-                SetBox(countertopArea, new Vector2(0f, -210f), new Vector2(1880f, 640f));
+                SetBox(countertopArea, new Vector2(0f, -210f), new Vector2(1920f, 650f));
+                if (plasticMatRect != null) SetBox(plasticMatRect, new Vector2(0f, 6f), new Vector2(1840f, 608f));
             }
 
+            // Left Column: Drink Dispenser stacked above Ingredient Tray
             if (drinkDispenserZone != null)
             {
-                SetBox(drinkDispenserZone, new Vector2(-832f, 0f), new Vector2(216f, 616f));
-                SetBox(drinkDispenserZone.Find("ZoneHeader_DrinkDispenser"), new Vector2(0f, 274f), new Vector2(198f, 46f));
-                Transform body = drinkDispenserZone.Find("DispenserBody");
-                if (body != null)
+                SetBox(drinkDispenserZone, new Vector2(-715f, 134f), new Vector2(406f, 326f));
+                Transform artGroup = drinkDispenserZone.Find("DispenserArtGroup");
+                if (artGroup != null)
                 {
-                    SetBox(body, new Vector2(0f, 44f), new Vector2(188f, 356f));
-                    SetBox(body.Find("DrinkTap_BerryJuice"), new Vector2(-45f, 78f), new Vector2(76f, 148f));
-                    SetBox(body.Find("DrinkTap_BerryJuice_Nozzle"), new Vector2(-45f, -8f), new Vector2(22f, 24f));
-                    SetBox(body.Find("DrinkTap_CalamansiTea"), new Vector2(45f, 78f), new Vector2(76f, 148f));
-                    SetBox(body.Find("DrinkTap_CalamansiTea_Nozzle"), new Vector2(45f, -8f), new Vector2(22f, 24f));
-                    SetBox(body.Find("PourProgressBar"), new Vector2(0f, -44f), new Vector2(160f, 16f));
-                    SetBox(body.Find("DispenserStatusPill"), new Vector2(0f, -80f), new Vector2(178f, 38f));
-                    SetBox(body.Find("StagePendingDrinkButton"), new Vector2(0f, -122f), new Vector2(162f, 34f));
-                    SetBox(body.Find("DripTray_Placeholder"), new Vector2(0f, -158f), new Vector2(166f, 20f));
+                    SetBox(artGroup, new Vector2(-68f, 12f), new Vector2(246f, 238f));
+                    artGroup.localScale = Vector3.one;
                 }
                 Transform cupDock = drinkDispenserZone.Find("CupSlot_Dock");
                 if (cupDock != null)
                 {
-                    SetBox(cupDock, new Vector2(0f, -214f), new Vector2(188f, 136f));
-                    SetBox(cupDock.Find("CupSlotLabelPill"), new Vector2(0f, -44f), new Vector2(178f, 34f));
+                    SetBox(cupDock, new Vector2(126f, -14f), new Vector2(132f, 240f));
                     Transform cup = cupDock.Find("DraggableCup_Item");
                     if (cup != null)
                     {
-                        SetSize(cup, new Vector2(72f, 76f));
+                        SetSize(cup, new Vector2(88f, 132f));
                         var dc = cup.GetComponent<DraggableCup>();
-                        if (dc != null) dc.SetRestPosition(new Vector2(0f, 16f));
-                        else SetPos(cup, new Vector2(0f, 16f));
+                        if (dc != null) dc.SetRestPosition(new Vector2(0f, 18f));
+                        else SetPos(cup, new Vector2(0f, 18f));
                     }
                 }
             }
 
             if (ingredientTrayZone != null)
             {
-                SetBox(ingredientTrayZone, new Vector2(-516f, 0f), new Vector2(380f, 616f));
-                SetBox(ingredientTrayZone.Find("ZoneHeader_IngredientTray"), new Vector2(0f, 278f), new Vector2(360f, 32f));
-                SetBox(ingredientTrayZone.Find("ZoneSubheaderPill"), new Vector2(0f, 244f), new Vector2(360f, 32f));
+                SetBox(ingredientTrayZone, new Vector2(-715f, -168f), new Vector2(406f, 268f));
                 Transform grid = ingredientTrayZone.Find("IngredientSlotsGrid");
                 if (grid != null)
                 {
-                    SetBox(grid, new Vector2(0f, -26f), new Vector2(348f, 492f));
+                    SetBox(grid, new Vector2(0f, -14f), new Vector2(382f, 222f));
                     var glg = grid.GetComponent<GridLayoutGroup>();
                     if (glg != null)
                     {
-                        glg.cellSize = new Vector2(165f, 236f);
-                        glg.spacing = new Vector2(18f, 16f);
+                        glg.cellSize = new Vector2(184f, 106f);
+                        glg.spacing = new Vector2(12f, 10f);
                     }
                     ApplyIngredientSlots(grid, portrait: false);
                 }
             }
 
+            // Center Column: 4-Burner Stove stacked above Kitchen Prep Tray
             if (stoveAreaZone != null)
             {
-                SetBox(stoveAreaZone, new Vector2(0f, 98f), new Vector2(620f, 420f));
-                SetBox(stoveAreaZone.Find("ZoneHeader_StoveArea"), new Vector2(0f, 186f), new Vector2(594f, 30f));
-                Transform grid = stoveAreaZone.Find("BurnersGrid");
-                if (grid != null)
+                SetBox(stoveAreaZone, new Vector2(-35f, 118f), new Vector2(760f, 374f));
+                if (stoveArtRoot != null)
                 {
-                    SetBox(grid, new Vector2(0f, -16f), new Vector2(588f, 364f));
-                    var glg = grid.GetComponent<GridLayoutGroup>();
-                    if (glg != null)
-                    {
-                        glg.cellSize = new Vector2(284f, 174f);
-                        glg.spacing = new Vector2(20f, 14f);
-                    }
+                    SetBox(stoveArtRoot, new Vector2(0f, -4f), new Vector2(528f, 362f));
+                    stoveArtRoot.localScale = Vector3.one;
                 }
             }
 
             if (utensilsStationZone != null)
             {
-                SetBox(utensilsStationZone, new Vector2(0f, -214f), new Vector2(620f, 188f));
-                SetBox(utensilsStationZone.Find("ZoneHeader_UtensilsStation"), new Vector2(0f, 76f), new Vector2(604f, 28f));
-                Transform board = utensilsStationZone.Find("Slot_KnifeAndCuttingBoard");
-                if (board != null)
+                SetBox(utensilsStationZone, new Vector2(-35f, -184f), new Vector2(820f, 234f));
+                if (prepTrayRoot != null)
                 {
-                    SetBox(board, new Vector2(-150f, -12f), new Vector2(292f, 144f));
-                    SetBox(board.Find("CuttingBoard_Shape"), new Vector2(0f, 22f), new Vector2(268f, 66f));
-                    SetBox(board.Find("IngredientsSummaryText"), new Vector2(0f, 36f), new Vector2(256f, 26f));
-                    SetBox(board.Find("StageStatusPill"), new Vector2(0f, 8f), new Vector2(260f, 28f));
-                    SetBox(board.Find("PrecisionBarRoot"), new Vector2(0f, -18f), new Vector2(246f, 18f));
-                    SetBox(board.Find("ChopButton"), new Vector2(-78f, -50f), new Vector2(88f, 30f));
-                    SetBox(board.Find("MixButton"), new Vector2(18f, -50f), new Vector2(88f, 30f));
-                    SetBox(board.Find("ResetPrepButton"), new Vector2(104f, -50f), new Vector2(60f, 30f));
-                }
-                Transform col = utensilsStationZone.Find("UtensilsAssignmentColumn");
-                if (col != null)
-                {
-                    SetBox(col, new Vector2(78f, -12f), new Vector2(142f, 144f));
-                    SetBox(col.Find("Slot_StirringLadle"), new Vector2(0f, 37f), new Vector2(138f, 66f));
-                    SetBox(col.Find("Slot_FryingSpatula"), new Vector2(0f, -37f), new Vector2(138f, 66f));
-                }
-                Transform dock = utensilsStationZone.Find("PreparedDishDock");
-                if (dock != null)
-                {
-                    SetBox(dock, new Vector2(228f, -12f), new Vector2(136f, 144f));
-                    SetBox(dock.Find("DockLabel"), new Vector2(0f, 48f), new Vector2(128f, 36f));
-                    SetBox(dock.Find("PreparedDish_Token"), new Vector2(0f, -14f), new Vector2(106f, 82f));
+                    SetBox(prepTrayRoot, Vector2.zero, new Vector2(820f, 234f));
+                    prepTrayRoot.localScale = Vector3.one;
                 }
             }
 
+            // Right Column: 3x2 Display Tray stacked above Extinguisher & Trash Can
             if (foodDisplayTrayZone != null)
             {
-                SetBox(foodDisplayTrayZone, new Vector2(633f, 70f), new Vector2(614f, 476f));
-                SetBox(foodDisplayTrayZone.Find("ZoneHeader_FoodDisplayTray"), new Vector2(0f, 212f), new Vector2(580f, 32f));
-                SetBox(foodDisplayTrayZone.Find("ZoneSubheaderPill"), new Vector2(0f, 180f), new Vector2(584f, 30f));
+                SetBox(foodDisplayTrayZone, new Vector2(648f, 92f), new Vector2(560f, 420f));
                 Transform grid = foodDisplayTrayZone.Find("DisplaySlotsGrid");
                 if (grid != null)
                 {
-                    SetBox(grid, new Vector2(0f, -22f), new Vector2(576f, 386f));
+                    SetBox(grid, new Vector2(0f, -16f), new Vector2(534f, 344f));
                     var glg = grid.GetComponent<GridLayoutGroup>();
                     if (glg != null)
                     {
-                        glg.cellSize = new Vector2(182f, 184f);
-                        glg.spacing = new Vector2(14f, 14f);
+                        glg.cellSize = new Vector2(170f, 166f);
+                        glg.spacing = new Vector2(12f, 12f);
                     }
                     ApplyDisplaySlots(grid, portrait: false);
                 }
@@ -234,77 +200,77 @@ namespace CookingSystem
 
             if (utilitySafetyZone != null)
             {
-                SetBox(utilitySafetyZone, new Vector2(633f, -242f), new Vector2(614f, 124f));
+                SetBox(utilitySafetyZone, new Vector2(648f, -206f), new Vector2(560f, 186f));
                 Transform extDock = utilitySafetyZone.Find("FireExtinguisher_Dock");
                 if (extDock != null)
                 {
-                    SetBox(extDock, new Vector2(-150f, 0f), new Vector2(280f, 102f));
-                    SetBox(extDock.Find("ExtDockLabel"), new Vector2(36f, 0f), new Vector2(184f, 74f));
+                    SetBox(extDock, new Vector2(-120f, 0f), new Vector2(292f, 158f));
                     Transform tool = extDock.Find("FireExtinguisher_Tool");
                     if (tool != null)
                     {
-                        SetSize(tool, new Vector2(58f, 84f));
+                        SetSize(tool, new Vector2(236f, 126f));
                         var ft = tool.GetComponent<FireExtinguisherTool>();
-                        if (ft != null) ft.SetRestPosition(new Vector2(-94f, 0f));
-                        else SetPos(tool, new Vector2(-94f, 0f));
+                        if (ft != null) ft.SetRestPosition(new Vector2(0f, 12f));
+                        else SetPos(tool, new Vector2(0f, 12f));
                     }
                 }
                 Transform trash = utilitySafetyZone.Find("TrashCan_DropZone");
                 if (trash != null)
                 {
-                    SetBox(trash, new Vector2(150f, 0f), new Vector2(280f, 102f));
-                    SetBox(trash.Find("TrashLabel"), Vector2.zero, new Vector2(256f, 80f));
+                    SetBox(trash, new Vector2(158f, 0f), new Vector2(214f, 166f));
                 }
             }
         }
 
         private void ApplyPortraitLayout()
         {
+            if (wallBackdrop != null)
+            {
+                SetBox(wallBackdrop, new Vector2(0f, 680f), new Vector2(1600f, 560f));
+            }
+
             if (topHudBar != null)
             {
-                SetBox(topHudBar, new Vector2(0f, 886f), new Vector2(1052f, 114f));
-                SetBox(topHudBar.Find("TimerText"), new Vector2(-340f, 26f), new Vector2(300f, 48f));
-                SetBox(topHudBar.Find("ScoreText"), new Vector2(-10f, 26f), new Vector2(300f, 48f));
-                SetBox(topHudBar.Find("OrdersText"), new Vector2(340f, 26f), new Vector2(300f, 48f));
-                SetBox(topHudBar.Find("ComboText"), new Vector2(-245f, -28f), new Vector2(490f, 44f));
-                SetBox(topHudBar.Find("RestartHudButton"), new Vector2(195f, -28f), new Vector2(170f, 44f));
-                SetBox(topHudBar.Find("MenuHudButton"), new Vector2(390f, -28f), new Vector2(180f, 44f));
+                SetBox(topHudBar, new Vector2(0f, 886f), new Vector2(1052f, 124f));
+                SetBox(topHudBar.Find("UI_ScorePill"), new Vector2(-280f, 28f), new Vector2(460f, 54f));
+                SetBox(topHudBar.Find("UI_TimerBarBg"), new Vector2(0f, -30f), new Vector2(1010f, 56f));
+                SetBox(topHudBar.Find("RestartHudButton"), new Vector2(180f, 28f), new Vector2(180f, 54f));
+                SetBox(topHudBar.Find("MenuHudButton"), new Vector2(390f, 28f), new Vector2(180f, 54f));
             }
 
             if (dishNotificationBanner != null)
             {
-                SetBox(dishNotificationBanner, new Vector2(0f, 804f), new Vector2(940f, 56f));
+                SetBox(dishNotificationBanner, new Vector2(0f, 800f), new Vector2(920f, 52f));
             }
 
             if (customerZone != null)
             {
                 SetBox(customerZone, new Vector2(0f, 642f), new Vector2(1052f, 344f));
-                SetBox(customerHeader, new Vector2(0f, 148f), new Vector2(990f, 32f));
-                SetBox(customerSlotsContainer, new Vector2(0f, -8f), new Vector2(1024f, 268f));
+                SetBox(customerSlotsContainer, new Vector2(0f, -4f), new Vector2(1024f, 272f));
                 if (customerSlotsLayout != null) customerSlotsLayout.spacing = 20f;
-                SetBox(serviceCounterLedge, new Vector2(0f, -162f), new Vector2(1052f, 20f));
+                SetBox(serviceCounterLedge, new Vector2(0f, -162f), new Vector2(1600f, 22f));
                 ApplyCustomerSlotCards(portrait: true);
             }
 
             if (countertopArea != null)
             {
-                SetBox(countertopArea, new Vector2(0f, -248f), new Vector2(1052f, 1384f));
+                SetBox(countertopArea, new Vector2(0f, -248f), new Vector2(1080f, 1396f));
+                if (plasticMatRect != null) SetBox(plasticMatRect, new Vector2(0f, 0f), new Vector2(1032f, 1320f));
             }
 
+            // Portrait Top Row: Ingredient Tray (left) + 4-Burner Stove (right)
             if (ingredientTrayZone != null)
             {
-                SetBox(ingredientTrayZone, new Vector2(-292f, 472f), new Vector2(440f, 412f));
-                SetBox(ingredientTrayZone.Find("ZoneHeader_IngredientTray"), new Vector2(0f, 184f), new Vector2(416f, 30f));
-                SetBox(ingredientTrayZone.Find("ZoneSubheaderPill"), new Vector2(0f, 150f), new Vector2(416f, 28f));
+                SetBox(ingredientTrayZone, new Vector2(-318f, 474f), new Vector2(406f, 396f));
                 Transform grid = ingredientTrayZone.Find("IngredientSlotsGrid");
                 if (grid != null)
                 {
-                    SetBox(grid, new Vector2(0f, -22f), new Vector2(416f, 300f));
+                    SetBox(grid, new Vector2(0f, -14f), new Vector2(382f, 336f));
                     var glg = grid.GetComponent<GridLayoutGroup>();
                     if (glg != null)
                     {
-                        glg.cellSize = new Vector2(200f, 142f);
-                        glg.spacing = new Vector2(16f, 14f);
+                        glg.cellSize = new Vector2(184f, 156f);
+                        glg.spacing = new Vector2(12f, 14f);
                     }
                     ApplyIngredientSlots(grid, portrait: true);
                 }
@@ -312,127 +278,88 @@ namespace CookingSystem
 
             if (stoveAreaZone != null)
             {
-                SetBox(stoveAreaZone, new Vector2(228f, 472f), new Vector2(572f, 412f));
-                SetBox(stoveAreaZone.Find("ZoneHeader_StoveArea"), new Vector2(0f, 184f), new Vector2(548f, 30f));
-                Transform grid = stoveAreaZone.Find("BurnersGrid");
-                if (grid != null)
+                SetBox(stoveAreaZone, new Vector2(204f, 474f), new Vector2(616f, 396f));
+                if (stoveArtRoot != null)
                 {
-                    SetBox(grid, new Vector2(0f, -18f), new Vector2(548f, 344f));
-                    var glg = grid.GetComponent<GridLayoutGroup>();
-                    if (glg != null)
-                    {
-                        glg.cellSize = new Vector2(266f, 164f);
-                        glg.spacing = new Vector2(16f, 14f);
-                    }
+                    SetBox(stoveArtRoot, new Vector2(0f, -4f), new Vector2(528f, 362f));
+                    stoveArtRoot.localScale = new Vector3(0.96f, 0.96f, 1f);
                 }
             }
 
+            // Portrait Mid Row: Drink Dispenser (left) + Kitchen Prep Tray (right)
             if (drinkDispenserZone != null)
             {
-                SetBox(drinkDispenserZone, new Vector2(-344f, 92f), new Vector2(336f, 316f));
-                SetBox(drinkDispenserZone.Find("ZoneHeader_DrinkDispenser"), new Vector2(0f, 136f), new Vector2(316f, 32f));
-                Transform body = drinkDispenserZone.Find("DispenserBody");
-                if (body != null)
+                SetBox(drinkDispenserZone, new Vector2(-346f, 108f), new Vector2(340f, 286f));
+                Transform artGroup = drinkDispenserZone.Find("DispenserArtGroup");
+                if (artGroup != null)
                 {
-                    SetBox(body, new Vector2(-64f, -18f), new Vector2(184f, 256f));
-                    SetBox(body.Find("DrinkTap_BerryJuice"), new Vector2(-44f, 52f), new Vector2(76f, 114f));
-                    SetBox(body.Find("DrinkTap_BerryJuice_Nozzle"), new Vector2(-44f, -14f), new Vector2(20f, 18f));
-                    SetBox(body.Find("DrinkTap_CalamansiTea"), new Vector2(44f, 52f), new Vector2(76f, 114f));
-                    SetBox(body.Find("DrinkTap_CalamansiTea_Nozzle"), new Vector2(44f, -14f), new Vector2(20f, 18f));
-                    SetBox(body.Find("PourProgressBar"), new Vector2(0f, -38f), new Vector2(160f, 14f));
-                    SetBox(body.Find("DispenserStatusPill"), new Vector2(0f, -72f), new Vector2(172f, 38f));
-                    SetBox(body.Find("StagePendingDrinkButton"), new Vector2(0f, -106f), new Vector2(160f, 30f));
-                    SetBox(body.Find("DripTray_Placeholder"), new Vector2(0f, -118f), new Vector2(160f, 12f));
+                    SetBox(artGroup, new Vector2(-58f, 8f), new Vector2(246f, 238f));
+                    artGroup.localScale = new Vector3(0.84f, 0.88f, 1f);
                 }
                 Transform cupDock = drinkDispenserZone.Find("CupSlot_Dock");
                 if (cupDock != null)
                 {
-                    SetBox(cupDock, new Vector2(96f, -18f), new Vector2(118f, 256f));
-                    SetBox(cupDock.Find("CupSlotLabelPill"), new Vector2(0f, -68f), new Vector2(110f, 64f));
+                    SetBox(cupDock, new Vector2(104f, -12f), new Vector2(114f, 224f));
                     Transform cup = cupDock.Find("DraggableCup_Item");
                     if (cup != null)
                     {
-                        SetSize(cup, new Vector2(72f, 78f));
+                        SetSize(cup, new Vector2(78f, 118f));
                         var dc = cup.GetComponent<DraggableCup>();
-                        if (dc != null) dc.SetRestPosition(new Vector2(0f, 32f));
-                        else SetPos(cup, new Vector2(0f, 32f));
+                        if (dc != null) dc.SetRestPosition(new Vector2(0f, 18f));
+                        else SetPos(cup, new Vector2(0f, 18f));
                     }
                 }
             }
 
             if (utensilsStationZone != null)
             {
-                SetBox(utensilsStationZone, new Vector2(176f, 92f), new Vector2(676f, 316f));
-                SetBox(utensilsStationZone.Find("ZoneHeader_UtensilsStation"), new Vector2(0f, 134f), new Vector2(652f, 32f));
-                Transform board = utensilsStationZone.Find("Slot_KnifeAndCuttingBoard");
-                if (board != null)
+                SetBox(utensilsStationZone, new Vector2(180f, 108f), new Vector2(688f, 286f));
+                if (prepTrayRoot != null)
                 {
-                    SetBox(board, new Vector2(-166f, -18f), new Vector2(320f, 240f));
-                    SetBox(board.Find("CuttingBoard_Shape"), new Vector2(0f, 44f), new Vector2(292f, 108f));
-                    SetBox(board.Find("IngredientsSummaryText"), new Vector2(0f, 68f), new Vector2(280f, 36f));
-                    SetBox(board.Find("StageStatusPill"), new Vector2(0f, 20f), new Vector2(280f, 38f));
-                    SetBox(board.Find("PrecisionBarRoot"), new Vector2(0f, -28f), new Vector2(276f, 24f));
-                    SetBox(board.Find("ChopButton"), new Vector2(-90f, -78f), new Vector2(98f, 46f));
-                    SetBox(board.Find("MixButton"), new Vector2(20f, -78f), new Vector2(98f, 46f));
-                    SetBox(board.Find("ResetPrepButton"), new Vector2(116f, -78f), new Vector2(68f, 46f));
-                }
-                Transform col = utensilsStationZone.Find("UtensilsAssignmentColumn");
-                if (col != null)
-                {
-                    SetBox(col, new Vector2(86f, -18f), new Vector2(156f, 240f));
-                    SetBox(col.Find("Slot_StirringLadle"), new Vector2(0f, 56f), new Vector2(148f, 104f));
-                    SetBox(col.Find("Slot_FryingSpatula"), new Vector2(0f, -56f), new Vector2(148f, 104f));
-                }
-                Transform dock = utensilsStationZone.Find("PreparedDishDock");
-                if (dock != null)
-                {
-                    SetBox(dock, new Vector2(248f, -18f), new Vector2(144f, 240f));
-                    SetBox(dock.Find("DockLabel"), new Vector2(0f, 76f), new Vector2(134f, 50f));
-                    SetBox(dock.Find("PreparedDish_Token"), new Vector2(0f, -20f), new Vector2(114f, 114f));
+                    SetBox(prepTrayRoot, Vector2.zero, new Vector2(820f, 234f));
+                    prepTrayRoot.localScale = new Vector3(0.83f, 0.96f, 1f);
                 }
             }
 
+            // Portrait Lower Row: 3x2 Display Tray
             if (foodDisplayTrayZone != null)
             {
-                SetBox(foodDisplayTrayZone, new Vector2(0f, -264f), new Vector2(1024f, 360f));
-                SetBox(foodDisplayTrayZone.Find("ZoneHeader_FoodDisplayTray"), new Vector2(0f, 156f), new Vector2(980f, 30f));
-                SetBox(foodDisplayTrayZone.Find("ZoneSubheaderPill"), new Vector2(0f, 126f), new Vector2(980f, 28f));
+                SetBox(foodDisplayTrayZone, new Vector2(0f, -242f), new Vector2(1024f, 360f));
                 Transform grid = foodDisplayTrayZone.Find("DisplaySlotsGrid");
                 if (grid != null)
                 {
-                    SetBox(grid, new Vector2(0f, -24f), new Vector2(992f, 264f));
+                    SetBox(grid, new Vector2(0f, -16f), new Vector2(990f, 300f));
                     var glg = grid.GetComponent<GridLayoutGroup>();
                     if (glg != null)
                     {
-                        glg.cellSize = new Vector2(320f, 124f);
-                        glg.spacing = new Vector2(16f, 14f);
+                        glg.cellSize = new Vector2(318f, 142f);
+                        glg.spacing = new Vector2(14f, 12f);
                     }
                     ApplyDisplaySlots(grid, portrait: true);
                 }
             }
 
+            // Portrait Bottom Row: Extinguisher + Trash Can
             if (utilitySafetyZone != null)
             {
-                SetBox(utilitySafetyZone, new Vector2(0f, -540f), new Vector2(1024f, 148f));
+                SetBox(utilitySafetyZone, new Vector2(0f, -536f), new Vector2(1024f, 186f));
                 Transform extDock = utilitySafetyZone.Find("FireExtinguisher_Dock");
                 if (extDock != null)
                 {
-                    SetBox(extDock, new Vector2(-256f, 0f), new Vector2(484f, 122f));
-                    SetBox(extDock.Find("ExtDockLabel"), new Vector2(48f, 0f), new Vector2(340f, 90f));
+                    SetBox(extDock, new Vector2(-235f, 0f), new Vector2(460f, 158f));
                     Transform tool = extDock.Find("FireExtinguisher_Tool");
                     if (tool != null)
                     {
-                        SetSize(tool, new Vector2(72f, 92f));
+                        SetSize(tool, new Vector2(260f, 136f));
                         var ft = tool.GetComponent<FireExtinguisherTool>();
-                        if (ft != null) ft.SetRestPosition(new Vector2(-176f, 0f));
-                        else SetPos(tool, new Vector2(-176f, 0f));
+                        if (ft != null) ft.SetRestPosition(new Vector2(-46f, 8f));
+                        else SetPos(tool, new Vector2(-46f, 8f));
                     }
                 }
                 Transform trash = utilitySafetyZone.Find("TrashCan_DropZone");
                 if (trash != null)
                 {
-                    SetBox(trash, new Vector2(256f, 0f), new Vector2(484f, 122f));
-                    SetBox(trash.Find("TrashLabel"), Vector2.zero, new Vector2(440f, 96f));
+                    SetBox(trash, new Vector2(235f, 0f), new Vector2(460f, 166f));
                 }
             }
         }
@@ -446,39 +373,23 @@ namespace CookingSystem
                 Transform slot = customerSlotsContainer.GetChild(i);
                 if (slot == null) continue;
 
-                SetSize(slot, portrait ? new Vector2(328f, 256f) : new Vector2(440f, 264f));
+                SetSize(slot, portrait ? new Vector2(328f, 260f) : new Vector2(440f, 268f));
 
                 if (portrait)
                 {
-                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-98f, 28f), new Vector2(96f, 134f));
-                    Transform bubble = slot.Find("OrderBubble");
-                    if (bubble != null)
-                    {
-                        SetBox(bubble, new Vector2(56f, 28f), new Vector2(194f, 146f));
-                        SetBox(bubble.Find("OrderTitleText"), new Vector2(0f, 56f), new Vector2(182f, 24f));
-                        SetBox(bubble.Find("MealOrderText"), new Vector2(0f, 10f), new Vector2(182f, 60f));
-                        SetBox(bubble.Find("DrinkOrderText"), new Vector2(0f, -46f), new Vector2(182f, 30f));
-                    }
-                    SetBox(slot.Find("SlotLabelText"), new Vector2(-98f, -64f), new Vector2(118f, 32f));
-                    SetBox(slot.Find("FeedbackText"), new Vector2(56f, -54f), new Vector2(194f, 28f));
-                    SetBox(slot.Find("PatienceTimerText"), new Vector2(56f, -80f), new Vector2(194f, 26f));
-                    SetBox(slot.Find("PatienceBar"), new Vector2(0f, -108f), new Vector2(304f, 16f));
+                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-84f, 14f), new Vector2(138f, 196f));
+                    SetBox(slot.Find("NameplatePill"), new Vector2(-84f, -104f), new Vector2(146f, 32f));
+                    SetBox(slot.Find("OrderBubble"), new Vector2(74f, 6f), new Vector2(158f, 234f));
+                    SetBox(slot.Find("PatienceTimerPill"), new Vector2(74f, -116f), new Vector2(158f, 24f));
+                    SetBox(slot.Find("FeedbackText"), new Vector2(0f, 112f), new Vector2(300f, 28f));
                 }
                 else
                 {
-                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-124f, 16f), new Vector2(142f, 168f));
-                    Transform bubble = slot.Find("OrderBubble");
-                    if (bubble != null)
-                    {
-                        SetBox(bubble, new Vector2(82f, 32f), new Vector2(236f, 144f));
-                        SetBox(bubble.Find("OrderTitleText"), new Vector2(0f, 54f), new Vector2(216f, 24f));
-                        SetBox(bubble.Find("MealOrderText"), new Vector2(0f, 10f), new Vector2(216f, 58f));
-                        SetBox(bubble.Find("DrinkOrderText"), new Vector2(0f, -44f), new Vector2(216f, 30f));
-                    }
-                    SetBox(slot.Find("SlotLabelText"), new Vector2(-124f, -82f), new Vector2(166f, 26f));
-                    SetBox(slot.Find("FeedbackText"), new Vector2(82f, -54f), new Vector2(236f, 28f));
-                    SetBox(slot.Find("PatienceTimerText"), new Vector2(82f, -78f), new Vector2(236f, 24f));
-                    SetBox(slot.Find("PatienceBar"), new Vector2(0f, -108f), new Vector2(404f, 16f));
+                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-114f, 14f), new Vector2(174f, 206f));
+                    SetBox(slot.Find("NameplatePill"), new Vector2(-114f, -106f), new Vector2(182f, 34f));
+                    SetBox(slot.Find("OrderBubble"), new Vector2(88f, 8f), new Vector2(168f, 246f));
+                    SetBox(slot.Find("PatienceTimerPill"), new Vector2(88f, -120f), new Vector2(170f, 24f));
+                    SetBox(slot.Find("FeedbackText"), new Vector2(0f, 116f), new Vector2(400f, 28f));
                 }
             }
         }
@@ -490,15 +401,17 @@ namespace CookingSystem
                 Transform slot = grid.GetChild(i);
                 if (slot == null) continue;
 
-                Vector2 socketPos = portrait ? new Vector2(-50f, 0f) : new Vector2(0f, 8f);
-                SetBox(slot.Find("SocketRing_Placeholder"), socketPos, portrait ? new Vector2(82f, 82f) : new Vector2(96f, 96f));
-                SetBox(slot.Find("CooldownOverlay"), socketPos, portrait ? new Vector2(82f, 82f) : new Vector2(96f, 96f));
-                SetBox(slot.Find("CooldownText"), socketPos, new Vector2(82f, 36f));
+                Vector2 socketPos = portrait ? new Vector2(0f, 22f) : new Vector2(-40f, 0f);
+                Vector2 iconSize = portrait ? new Vector2(86f, 86f) : new Vector2(82f, 82f);
 
-                SetBox(slot.Find("TitleText"), portrait ? new Vector2(42f, 26f) : new Vector2(0f, 90f),
-                    portrait ? new Vector2(106f, 38f) : new Vector2(154f, 34f));
-                SetBox(slot.Find("DragHintPill"), portrait ? new Vector2(42f, -24f) : new Vector2(0f, -86f),
-                    portrait ? new Vector2(106f, 44f) : new Vector2(156f, 38f));
+                SetBox(slot.Find("SocketRing_Placeholder"), socketPos, iconSize);
+                SetBox(slot.Find("CooldownOverlay"), socketPos, iconSize);
+                SetBox(slot.Find("CooldownText"), socketPos, new Vector2(78f, 34f));
+
+                SetBox(slot.Find("TitleText"), portrait ? new Vector2(0f, -34f) : new Vector2(44f, 18f),
+                    portrait ? new Vector2(166f, 26f) : new Vector2(88f, 28f));
+                SetBox(slot.Find("DragHintPill"), portrait ? new Vector2(0f, -60f) : new Vector2(44f, -18f),
+                    portrait ? new Vector2(162f, 26f) : new Vector2(88f, 28f));
 
                 var pantry = slot.GetComponent<PantrySlot>();
                 if (pantry != null)
@@ -515,21 +428,21 @@ namespace CookingSystem
                 Transform slot = grid.GetChild(i);
                 if (slot == null) continue;
 
-                Vector2 platePos = portrait ? new Vector2(-96f, 0f) : new Vector2(0f, 22f);
-                Vector2 plateSize = portrait ? new Vector2(88f, 88f) : new Vector2(104f, 104f);
+                Vector2 trayPos = portrait ? new Vector2(-78f, 4f) : new Vector2(0f, 20f);
+                Vector2 traySize = portrait ? new Vector2(126f, 114f) : new Vector2(138f, 122f);
 
-                SetBox(slot.Find("Plate_Placeholder"), platePos, plateSize);
+                SetBox(slot.Find("TrayFrame_Image"), trayPos, traySize);
                 Transform trayItem = slot.Find("TrayItem_Draggable");
                 if (trayItem != null)
                 {
-                    SetSize(trayItem, portrait ? new Vector2(82f, 82f) : new Vector2(96f, 96f));
+                    SetSize(trayItem, portrait ? new Vector2(118f, 108f) : new Vector2(128f, 114f));
                     var itemComp = trayItem.GetComponent<DraggableTrayItem>();
-                    if (itemComp != null) itemComp.SetRestPosition(platePos);
-                    else SetPos(trayItem, platePos);
+                    if (itemComp != null) itemComp.SetRestPosition(trayPos);
+                    else SetPos(trayItem, trayPos);
                 }
 
-                SetBox(slot.Find("SlotLabelPill"), portrait ? new Vector2(54f, 0f) : new Vector2(0f, -58f),
-                    portrait ? new Vector2(190f, 92f) : new Vector2(172f, 52f));
+                SetBox(slot.Find("SlotLabelPill"), portrait ? new Vector2(70f, 0f) : new Vector2(0f, -54f),
+                    portrait ? new Vector2(158f, 92f) : new Vector2(162f, 48f));
             }
         }
 
