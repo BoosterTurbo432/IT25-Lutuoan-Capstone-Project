@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" href="data:,">
     <title>{{{ PRODUCT_NAME }}}</title>
 #if SHOW_DIAGNOSTICS
     <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>">
@@ -70,6 +71,22 @@
         background: linear-gradient(90deg, #F59E0B, #22C55E);
         transition: width 0.12s ease-out;
       }
+      #unity-loading-status {
+        font-size: 14px;
+        color: #CBD5E1;
+      }
+      #unity-error-box {
+        display: none;
+        max-width: min(440px, 84vw);
+        padding: 12px 16px;
+        border-radius: 8px;
+        background: rgba(127, 29, 29, 0.85);
+        border: 1px solid #F87171;
+        color: #FEE2E2;
+        font-size: 13px;
+        line-height: 1.45;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -80,6 +97,8 @@
         <div id="unity-progress-track">
           <div id="unity-progress-fill"></div>
         </div>
+        <div id="unity-loading-status">Loading 0%</div>
+        <div id="unity-error-box" role="alert"></div>
       </div>
     </div>
 #if SHOW_DIAGNOSTICS
@@ -91,16 +110,40 @@
         var canvas = document.querySelector("#unity-canvas");
         var overlay = document.querySelector("#unity-loading-overlay");
         var progressFill = document.querySelector("#unity-progress-fill");
+        var loadingStatus = document.querySelector("#unity-loading-status");
+        var errorBox = document.querySelector("#unity-error-box");
+
+        function showError(msg) {
+          console.error("[Lutuoan WebGL]", msg);
+          if (loadingStatus) loadingStatus.textContent = "Unable to start game";
+          if (errorBox) {
+            errorBox.textContent = String(msg || "WebGL initialization failed.");
+            errorBox.style.display = "block";
+          }
+        }
 
         function syncCanvasSize() {
-          canvas.style.width = window.innerWidth + "px";
-          canvas.style.height = window.innerHeight + "px";
+          var vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+          var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+          canvas.style.width = Math.round(vw) + "px";
+          canvas.style.height = Math.round(vh) + "px";
         }
         window.addEventListener("resize", syncCanvasSize);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", syncCanvasSize);
+        }
         window.addEventListener("orientationchange", function () {
           setTimeout(syncCanvasSize, 120);
         });
+        canvas.addEventListener("pointerdown", function () {
+          canvas.focus();
+        });
         syncCanvasSize();
+
+        if (!window.WebGL2RenderingContext) {
+          showError("Your browser does not support WebGL 2. Please update your browser or enable hardware acceleration.");
+          return;
+        }
 
         var config = {
           arguments: [],
@@ -125,7 +168,9 @@
         };
 
         createUnityInstance(canvas, config, function (progress) {
-          progressFill.style.width = Math.round(progress * 100) + "%";
+          var pct = Math.round(progress * 100);
+          progressFill.style.width = pct + "%";
+          if (loadingStatus) loadingStatus.textContent = "Loading " + pct + "%";
         }).then(function (unityInstance) {
           overlay.style.display = "none";
           syncCanvasSize();
@@ -138,7 +183,7 @@
           }
 #endif
         }).catch(function (message) {
-          alert(message);
+          showError(message);
         });
       })();
     </script>
