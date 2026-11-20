@@ -19,7 +19,7 @@ Lutuoan (v1.0) is a Unity 2D carinderia cooking and time-management game with an
 - Custom Responsive WebGL Template (`Assets/WebGLTemplates/Responsive/index.html`, WebGL 2, Gzip compression with decompression fallback)
 - Local JSON & Browser Storage (`SaveSystem` and `BrowserStorageBridge`)
 - Firebase Unity SDK `14.1.0` (bundled in `Assets/Firebase`)
-- Git, Git LFS & GitHub Desktop
+- GitHub Desktop
 
 ## Database Used
 - Local JSON save storage (`savegame.json` with `.bak` backup in `Application.persistentDataPath`) paired with `BrowserStorageBridge` (`PlayerPrefs` and WebGL `localStorage`/IDBFS) for campaign saves and the Endless Mode leaderboard.
@@ -39,24 +39,8 @@ Lutuoan (v1.0) is a Unity 2D carinderia cooking and time-management game with an
   - Highest combo streak
   - Recorded UTC timestamp
 
-## How to Run
-### Option 1: Official WebGL Release Build (`Build/WebGL/`)
-1. Serve the `Build/WebGL/` folder over HTTP/HTTPS (using Unity **Build And Run**, a local HTTP server such as `python -m http.server` inside `Build/WebGL`, GitHub Pages, or itch.io).
-2. Open the hosted URL in a desktop or mobile browser with WebGL 2 enabled (do not open `index.html` directly via `file://`).
-
-### Option 2: Unity Editor
-1. Ensure Git LFS is installed (`git lfs install` and `git lfs pull`) before opening the repository.
-2. Open the project in Unity `6000.6.7f1`.
-3. Open `Assets/Scenes/loadingscreen.unity` or `Assets/Scenes/mainmenuscene.unity` (or select one of the Web Build Profiles in `Assets/Settings/Build Profiles/` to export a new build).
-4. Press **Play**.
-5. Click **Start Cooking** and choose **New Game** (or **Load Save**) to play the 3-day campaign, or select **Endless Mode** once unlocked by clearing Day 3.
-6. Drag ingredients to the prep station, cook them in the pot or pan, pour drinks at the dispenser, and serve orders to customers (use the fire extinguisher if food burns).
-7. Between shifts, open the **Upgrade Shop** to spend Skill Points on kitchen upgrades and advance to the next day.
-8. After an Endless Mode run, enter your player name (up to 8 characters) to submit your score and view the **Leaderboard** (`leaderboardscene`).
-
 ## Repository Access
 - The instructor GitHub account `gracheleliza` was added as collaborator.
-- Contributors must have Git LFS enabled (`git lfs install`) when cloning, pulling, or pushing binary assets.
 
 ## Known Limitations
 - Save data and the Top-10 Endless leaderboard are stored locally per device or browser (`savegame.json`, `PlayerPrefs`, and WebGL `localStorage`/IDBFS); online leaderboard syncing and user authentication are not yet active (the Firebase SDK in `Assets/Firebase` is not wired into runtime scripts).
