@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" href="data:,">
+    <title>Lutuoan</title>
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #231F20;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+      }
+      #unity-container {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #231F20;
+      }
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #unity-loading-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: rgba(20, 17, 16, 0.92);
+        color: #F8FAFC;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        z-index: 10;
+      }
+      #unity-loading-title {
+        font-size: clamp(18px, 3vw, 28px);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      #unity-progress-track {
+        width: min(380px, 76vw);
+        height: 16px;
+        border-radius: 999px;
+        background: #334155;
+        overflow: hidden;
+      }
+      #unity-progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #F59E0B, #22C55E);
+        transition: width 0.12s ease-out;
+      }
+      #unity-loading-status {
+        font-size: 14px;
+        color: #CBD5E1;
+      }
+      #unity-error-box {
+        display: none;
+        max-width: min(440px, 84vw);
+        padding: 12px 16px;
+        border-radius: 8px;
+        background: rgba(127, 29, 29, 0.85);
+        border: 1px solid #F87171;
+        color: #FEE2E2;
+        font-size: 13px;
+        line-height: 1.45;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      <div id="unity-loading-overlay">
+        <div id="unity-loading-title">Lutuoan</div>
+        <div id="unity-progress-track">
+          <div id="unity-progress-fill"></div>
+        </div>
+        <div id="unity-loading-status">Loading 0%</div>
+        <div id="unity-error-box" role="alert"></div>
+      </div>
+    </div>
+    <script src="Build/6919c4ba527ba997acc136bd97699db7.loader.js"></script>
+    <script>
+      (function () {
+        var canvas = document.querySelector("#unity-canvas");
+        var overlay = document.querySelector("#unity-loading-overlay");
+        var progressFill = document.querySelector("#unity-progress-fill");
+        var loadingStatus = document.querySelector("#unity-loading-status");
+        var errorBox = document.querySelector("#unity-error-box");
+
+        function showError(msg) {
+          console.error("[Lutuoan WebGL]", msg);
+          if (loadingStatus) loadingStatus.textContent = "Unable to start game";
+          if (errorBox) {
+            errorBox.textContent = String(msg || "WebGL initialization failed.");
+            errorBox.style.display = "block";
+          }
+        }
+
+        function syncCanvasSize() {
+          var vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+          var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+          canvas.style.width = Math.round(vw) + "px";
+          canvas.style.height = Math.round(vh) + "px";
+        }
+        window.addEventListener("resize", syncCanvasSize);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", syncCanvasSize);
+        }
+        window.addEventListener("orientationchange", function () {
+          setTimeout(syncCanvasSize, 120);
+        });
+        canvas.addEventListener("pointerdown", function () {
+          canvas.focus();
+        });
+        syncCanvasSize();
+
+        if (window.location.protocol === "file:") {
+          showError("Unity WebGL cannot run directly from a local file (file://) because browsers block loading game data over file://. Open the game via Unity 'Build And Run', a local HTTP server, GitHub Pages, or itch.io.");
+          return;
+        }
+
+        if (!window.WebGL2RenderingContext) {
+          showError("Your browser does not support WebGL 2. Please update your browser or enable hardware acceleration.");
+          return;
+        }
+
+        var config = {
+          arguments: [],
+          dataUrl: "Build/6cec5dd2dd26e60e69fb718ff5e1dcb2.data",
+          frameworkUrl: "Build/d721ac243feed0b1bb44314cfb467231.framework.js",
+          codeUrl: "Build/3b22c84544ab9cf7628e7a71a6b04831.wasm",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "IT25",
+          productName: "Lutuoan",
+          productVersion: "1.0",
+          devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+        };
+
+        createUnityInstance(canvas, config, function (progress) {
+          var pct = Math.round(progress * 100);
+          progressFill.style.width = pct + "%";
+          if (loadingStatus) loadingStatus.textContent = "Loading " + pct + "%";
+        }).then(function (unityInstance) {
+          overlay.style.display = "none";
+          syncCanvasSize();
+        }).catch(function (message) {
+          showError(message);
+        });
+      })();
+    </script>
+  </body>
+</html>
