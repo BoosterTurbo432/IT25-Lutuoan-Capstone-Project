@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
+using CookingSystem.Audio;
 using CookingSystem.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace CookingSystem
 {
     /// <summary>
-    /// Controls the 3-Day Carinderia progression loop, Day 1 Tutorial Pause,
-    /// Endless Mode (no timer, 3-Lives/Strikes, dynamic Rush Tiers),
-    /// Upgrade multipliers, SaveSystem persistence, and end-of-shift modals.
+    /// Controls the 3-Day Carinderia progression loop, Interactive Day 1 Tutorial Timer Pause,
+    /// Unified Pause (||) & Help (?) Modals, Visualized End-of-Shift Result Screen,
+    /// Endless Mode (no timer, 3-Lives/Strikes, dynamic Rush Tiers), and Upgrade multipliers.
     /// </summary>
     [DisallowMultipleComponent]
     public class LevelGameManager : MonoBehaviour
@@ -35,17 +39,36 @@ namespace CookingSystem
         [SerializeField] private TextMeshProUGUI scoreText;
         [SerializeField] private TextMeshProUGUI ordersText;
         [SerializeField] private TextMeshProUGUI comboText;
-        [SerializeField] private Button restartHudButton;
-        [SerializeField] private Button mainMenuHudButton;
+        [SerializeField] private Button helpHudButton;
+        [SerializeField] private Button pauseHudButton;
 
-        [Header("Day 1 Visual Tutorial Modal")]
-        [SerializeField] private GameObject tutorialModalRoot;
-        [SerializeField] private Button startShiftButton;
+        [Header("Guided Tutorial & Help Modal")]
+        [SerializeField] private GuidedTutorialController guidedTutorial;
+        [SerializeField] private GameObject helpModalRoot;
+        [SerializeField] private Button closeHelpButton;
 
-        [Header("End-of-Level Summary Modal")]
+        [Header("Unified Pause Modal")]
+        [SerializeField] private GameObject pauseModalRoot;
+        [SerializeField] private TMP_Text pauseShiftSubtitleText;
+        [SerializeField] private Button resumeFromPauseButton;
+        [SerializeField] private Button restartFromPauseButton;
+        [SerializeField] private Button mainMenuFromPauseButton;
+
+        [Header("Visualized End-of-Level Summary Modal")]
         [SerializeField] private GameObject summaryModalRoot;
+        [SerializeField] private Image summaryHeroIcon;
+        [SerializeField] private Sprite victoryHeroSprite;
+        [SerializeField] private Sprite retryHeroSprite;
         [SerializeField] private TextMeshProUGUI summaryTitleText;
         [SerializeField] private TextMeshProUGUI summaryBreakdownText;
+        [SerializeField] private Image[] summaryStarImages;
+        [SerializeField] private Sprite starFilledSprite;
+        [SerializeField] private Sprite starEmptySprite;
+        [SerializeField] private TMP_Text[] summaryBadgeValues;
+        [SerializeField] private Image summaryQualityMeterFill;
+        [SerializeField] private TMP_Text summaryQualityValueText;
+        [SerializeField] private Image summarySatisfactionMeterFill;
+        [SerializeField] private TMP_Text summarySatisfactionValueText;
         [SerializeField] private TextMeshProUGUI summaryFinalScoreText;
         [SerializeField] private Button upgradeShopButton;
         [SerializeField] private TMP_Text upgradeShopButtonLabel;
@@ -70,7 +93,8 @@ namespace CookingSystem
         private float remainingTime;
         private float elapsedEndlessSeconds;
         private bool isLevelActive;
-        private bool isTutorialOpen;
+        private bool isHelpPaused;
+        private bool isPauseMenuOpen;
         private bool hasShiftEnded;
         private bool hasSubmittedLeaderboardScore;
 
@@ -97,8 +121,9 @@ namespace CookingSystem
         public GameMode ActiveMode => activeMode;
         public int ActiveDay => activeDay;
         public bool IsEndlessMode => activeMode == GameMode.Endless;
-        public bool IsTutorialOpen => isTutorialOpen;
-        public bool IsLevelActive => isLevelActive && !isTutorialOpen && !hasShiftEnded;
+        public bool IsHelpOrPauseOpen => isHelpPaused || isPauseMenuOpen;
+        public bool IsTimerPausedForTutorial => guidedTutorial != null && guidedTutorial.IsRunning;
+        public bool IsLevelActive => isLevelActive && !hasShiftEnded && !IsHelpOrPauseOpen;
         public float RemainingTime => remainingTime;
         public int TotalScore => totalScore;
         public int ShiftCustomerQuota => shiftCustomerQuota;
@@ -106,6 +131,7 @@ namespace CookingSystem
         public int CurrentEndlessTier => currentEndlessTier;
 
         public event Action<bool> onLevelEnded;
+        public event Action onAnyOrderProgress;
 
         private void Awake()
         {
@@ -115,15 +141,21 @@ namespace CookingSystem
                 return;
             }
             Instance = this;
+            Time.timeScale = 1f;
 
             if (summaryModalRoot != null) summaryModalRoot.SetActive(false);
-            if (tutorialModalRoot != null) tutorialModalRoot.SetActive(false);
+            if (helpModalRoot != null) helpModalRoot.SetActive(false);
+            if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
             if (leaderboardSubmitGroup != null) leaderboardSubmitGroup.SetActive(false);
             if (endlessLeaderboardPanel != null) endlessLeaderboardPanel.CloseOverlay();
 
-            if (startShiftButton != null) startShiftButton.onClick.AddListener(DismissTutorial);
-            if (restartHudButton != null) restartHudButton.onClick.AddListener(RestartLevel);
-            if (mainMenuHudButton != null) mainMenuHudButton.onClick.AddListener(GoToMainMenu);
+            if (helpHudButton != null) helpHudButton.onClick.AddListener(OpenHelpModal);
+            if (closeHelpButton != null) closeHelpButton.onClick.AddListener(CloseHelpModal);
+            if (pauseHudButton != null) pauseHudButton.onClick.AddListener(OpenPauseMenu);
+            if (resumeFromPauseButton != null) resumeFromPauseButton.onClick.AddListener(ClosePauseMenu);
+            if (restartFromPauseButton != null) restartFromPauseButton.onClick.AddListener(RestartLevel);
+            if (mainMenuFromPauseButton != null) mainMenuFromPauseButton.onClick.AddListener(GoToMainMenu);
+
             if (upgradeShopButton != null) upgradeShopButton.onClick.AddListener(GoToUpgradeShop);
             if (playAgainButton != null) playAgainButton.onClick.AddListener(RestartLevel);
             if (summaryMainMenuButton != null) summaryMainMenuButton.onClick.AddListener(GoToMainMenu);
@@ -136,7 +168,21 @@ namespace CookingSystem
                 leaderboardNameInput.characterLimit = LeaderboardSystem.MaxNameLength;
             }
 
+            if (guidedTutorial != null)
+            {
+                guidedTutorial.onTutorialCompleted += HandleGuidedTutorialCompleted;
+            }
+
             InitializeSessionConfig();
+        }
+
+        private void OnDestroy()
+        {
+            Time.timeScale = 1f;
+            if (guidedTutorial != null)
+            {
+                guidedTutorial.onTutorialCompleted -= HandleGuidedTutorialCompleted;
+            }
         }
 
         private void InitializeSessionConfig()
@@ -178,16 +224,17 @@ namespace CookingSystem
                 layout.ConfigureIngredientTier(unlockTier);
             }
 
-            if (activeMode == GameMode.CampaignDay && activeDay == 1 && tutorialModalRoot != null)
+            isLevelActive = true;
+            GameAudioManager.Instance?.PlayMusicForGameMode(activeMode);
+
+            if (activeMode == GameMode.CampaignDay && activeDay == 1 && guidedTutorial != null)
             {
-                tutorialModalRoot.SetActive(true);
-                isTutorialOpen = true;
-                isLevelActive = false;
+                guidedTutorial.BeginTutorial();
+                CustomerManager.Instance?.TrySpawnCustomer(forceTutorialMeal: true);
+                DishNotificationUI.Instance?.ShowNotification("Day 1 Guided Shift — Follow the 4-Step Guide! (Tap ? Help anytime)");
             }
             else
             {
-                isTutorialOpen = false;
-                isLevelActive = true;
                 ShowShiftStartBanner();
             }
 
@@ -196,7 +243,19 @@ namespace CookingSystem
 
         private void Update()
         {
+            if (WasEscapePressedThisFrame() && !hasShiftEnded)
+            {
+                if (isHelpPaused) CloseHelpModal();
+                else if (isPauseMenuOpen) ClosePauseMenu();
+                else OpenPauseMenu();
+            }
+
             if (!IsLevelActive) return;
+            if (IsTimerPausedForTutorial)
+            {
+                RefreshHud();
+                return;
+            }
 
             if (activeMode == GameMode.Endless)
             {
@@ -217,19 +276,63 @@ namespace CookingSystem
             RefreshHud();
         }
 
-        public void DismissTutorial()
+        private void HandleGuidedTutorialCompleted()
         {
-            if (!isTutorialOpen) return;
+            CustomerManager.Instance?.ResumeAfterTutorial();
+            RefreshHud();
+        }
 
-            isTutorialOpen = false;
-            if (tutorialModalRoot != null)
+        public void OpenHelpModal()
+        {
+            if (hasShiftEnded) return;
+            if (isPauseMenuOpen)
             {
-                tutorialModalRoot.SetActive(false);
+                isPauseMenuOpen = false;
+                if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
             }
 
-            isLevelActive = true;
-            RefreshHud();
-            ShowShiftStartBanner();
+            isHelpPaused = true;
+            if (helpModalRoot != null) helpModalRoot.SetActive(true);
+            SyncTimeScale();
+        }
+
+        public void CloseHelpModal()
+        {
+            isHelpPaused = false;
+            if (helpModalRoot != null) helpModalRoot.SetActive(false);
+            SyncTimeScale();
+        }
+
+        public void OpenPauseMenu()
+        {
+            if (hasShiftEnded) return;
+            if (isHelpPaused)
+            {
+                isHelpPaused = false;
+                if (helpModalRoot != null) helpModalRoot.SetActive(false);
+            }
+
+            isPauseMenuOpen = true;
+            if (pauseShiftSubtitleText != null)
+            {
+                pauseShiftSubtitleText.text = activeMode == GameMode.Endless
+                    ? $"Endless Rush  |  Rush Lv {currentEndlessTier + 1}  |  Lives: {livesRemaining}/3"
+                    : $"Day {activeDay}/3: {activeDayConfig.shiftTitle}  |  Orders: {customersCompletedCount}/{shiftCustomerQuota}";
+            }
+            if (pauseModalRoot != null) pauseModalRoot.SetActive(true);
+            SyncTimeScale();
+        }
+
+        public void ClosePauseMenu()
+        {
+            isPauseMenuOpen = false;
+            if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
+            SyncTimeScale();
+        }
+
+        private void SyncTimeScale()
+        {
+            Time.timeScale = (isHelpPaused || isPauseMenuOpen) ? 0f : 1f;
         }
 
         private void ShowShiftStartBanner()
@@ -255,15 +358,22 @@ namespace CookingSystem
             }
         }
 
-        public void RegisterMealDelivery(int basePoints, float combinedQuality, float satisfaction)
+        public void RegisterMealDelivery(int basePoints, float combinedQuality, float satisfaction, bool wasAccurate = true, bool completesMealDrinkCombo = false)
         {
             if (!IsLevelActive) return;
 
             dishesServedCount++;
-            currentStreak++;
-            if (currentStreak > highestComboStreak)
+            if (wasAccurate)
             {
-                highestComboStreak = currentStreak;
+                currentStreak++;
+                if (currentStreak > highestComboStreak)
+                {
+                    highestComboStreak = currentStreak;
+                }
+            }
+            else
+            {
+                currentStreak = 0;
             }
 
             int qualityBonus = Mathf.RoundToInt(basePoints * Mathf.Clamp01(combinedQuality) * 0.5f);
@@ -278,6 +388,22 @@ namespace CookingSystem
 
             qualitySamples.Add(combinedQuality);
             satisfactionSamples.Add(satisfaction);
+
+            if (!wasAccurate)
+            {
+                GameAudioManager.Instance?.PlayNotSatisfied();
+            }
+            else if (completesMealDrinkCombo || currentStreak >= 2)
+            {
+                GameAudioManager.Instance?.PlayComboStreak();
+            }
+            else
+            {
+                GameAudioManager.Instance?.PlaySatisfied();
+            }
+
+            onAnyOrderProgress?.Invoke();
+            guidedTutorial?.NotifyDishServed();
             RefreshHud();
         }
 
@@ -296,6 +422,7 @@ namespace CookingSystem
                 combosCompletedCount++;
                 comboBonusTotal += scaledCombo;
                 totalScore += scaledCombo;
+                GameAudioManager.Instance?.PlayComboStreak();
             }
 
             if (satisfaction >= 0f)
@@ -303,6 +430,7 @@ namespace CookingSystem
                 satisfactionSamples.Add(satisfaction);
             }
 
+            onAnyOrderProgress?.Invoke();
             RefreshHud();
         }
 
@@ -322,6 +450,8 @@ namespace CookingSystem
             if (!IsLevelActive) return;
 
             customersCompletedCount++;
+            onAnyOrderProgress?.Invoke();
+            guidedTutorial?.NotifyDishServed();
 
             if (activeMode == GameMode.Endless)
             {
@@ -380,14 +510,20 @@ namespace CookingSystem
             if (hasShiftEnded) return;
             hasShiftEnded = true;
             isLevelActive = false;
+            isHelpPaused = false;
+            isPauseMenuOpen = false;
+            Time.timeScale = 1f;
+
+            if (helpModalRoot != null) helpModalRoot.SetActive(false);
+            if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
 
             int timeBonus = activeMode == GameMode.CampaignDay
                 ? Mathf.RoundToInt(Mathf.Max(0f, remainingTime) * pointsPerRemainingSecond)
                 : 0;
             totalScore += timeBonus;
 
-            float avgQuality = ComputeAverage(qualitySamples) * 100f;
-            float avgSatisfaction = ComputeAverage(satisfactionSamples) * 100f;
+            float avgQuality = ComputeAverage(qualitySamples);
+            float avgSatisfaction = ComputeAverage(satisfactionSamples);
 
             SaveData save = SaveSystem.GetOrCreateCurrent();
             save.dishesServed += dishesServedCount;
@@ -426,6 +562,8 @@ namespace CookingSystem
             }
 
             SaveSystem.Save();
+            if (completedQuota) GameAudioManager.Instance?.PlayVictory();
+            else GameAudioManager.Instance?.PlayFail();
             PopulateSummaryModal(completedQuota, newlyUnlockedEndless, awardedSkillPoints, timeBonus, avgQuality, avgSatisfaction, save);
             RefreshHud();
             onLevelEnded?.Invoke(completedQuota);
@@ -436,8 +574,8 @@ namespace CookingSystem
             bool newlyUnlockedEndless,
             int awardedSkillPoints,
             int timeBonus,
-            float avgQuality,
-            float avgSatisfaction,
+            float avgQualityNormalized,
+            float avgSatisfactionNormalized,
             SaveData save)
         {
             if (summaryModalRoot != null)
@@ -445,57 +583,86 @@ namespace CookingSystem
                 summaryModalRoot.SetActive(true);
             }
 
+            if (summaryHeroIcon != null)
+            {
+                Sprite targetHero = (activeMode == GameMode.CampaignDay && !completedQuota) ? retryHeroSprite : victoryHeroSprite;
+                if (targetHero != null) summaryHeroIcon.sprite = targetHero;
+            }
+
+            int earnedStars = ComputeEarnedStars(completedQuota, avgSatisfactionNormalized);
+            if (summaryStarImages != null)
+            {
+                for (int i = 0; i < summaryStarImages.Length; i++)
+                {
+                    Image starImg = summaryStarImages[i];
+                    if (starImg == null) continue;
+                    bool lit = i < earnedStars;
+                    if (lit && starFilledSprite != null) starImg.sprite = starFilledSprite;
+                    else if (!lit && starEmptySprite != null) starImg.sprite = starEmptySprite;
+                    starImg.color = Color.white;
+                }
+            }
+
             if (summaryTitleText != null)
             {
                 if (activeMode == GameMode.Endless)
                 {
                     summaryTitleText.text = "Endless Shift Over — 3 Strikes!";
+                    summaryTitleText.color = new Color(0.98f, 0.75f, 0.14f, 1f);
                 }
                 else if (completedQuota && activeDay >= ProgressionConfig.TotalCampaignDays)
                 {
                     summaryTitleText.text = newlyUnlockedEndless
-                        ? "Day 3 Complete — Endless Unlocked!"
+                        ? "Day 3 Cleared — Endless Unlocked!"
                         : "Day 3 Shift Complete!";
+                    summaryTitleText.color = new Color(0.98f, 0.75f, 0.14f, 1f);
                 }
                 else if (completedQuota)
                 {
                     summaryTitleText.text = $"Day {activeDay} Shift Complete!";
+                    summaryTitleText.color = new Color(0.29f, 0.87f, 0.50f, 1f);
                 }
                 else
                 {
-                    summaryTitleText.text = $"Day {activeDay} — Time's Up!";
+                    summaryTitleText.text = $"Day {activeDay} — Shift Failed";
+                    summaryTitleText.color = new Color(0.97f, 0.44f, 0.44f, 1f);
                 }
             }
 
             if (summaryBreakdownText != null)
             {
-                if (activeMode == GameMode.Endless)
-                {
-                    summaryBreakdownText.text =
-                        $"Survival Time: {FormatTime(elapsedEndlessSeconds)}   |   Rush Tier Reached: Lv {currentEndlessTier + 1}\n" +
-                        $"Dishes Served: {dishesServedCount}   |   Drinks: {drinksServedCount}   |   Highest Combo: x{highestComboStreak}\n" +
-                        $"Customers Served: {customersCompletedCount} (Best: {save.endlessBestServed})   |   Endless Best: {save.endlessHighScore}\n" +
-                        $"Avg Dish Quality: {avgQuality:F0}%   |   Avg Satisfaction: {avgSatisfaction:F0}%";
-                }
-                else
-                {
-                    string rewardLine = completedQuota
-                        ? $"\n<color=#FBBF24>+{awardedSkillPoints} Skill Point Awarded! (Total SP: {save.skillPoints})</color>"
-                        : "\n<color=#FCA5A5>Reach the customer quota to unlock the next day & earn +1 SP!</color>";
-
-                    summaryBreakdownText.text =
-                        $"Day {activeDay} ({activeDayConfig.shiftTitle})   |   Satisfied: {customersCompletedCount}/{shiftCustomerQuota}   (Lost: {customersLostCount})\n" +
-                        $"Dishes Served: {dishesServedCount}   |   Drinks Served: {drinksServedCount}   |   Combos: {combosCompletedCount}\n" +
-                        $"Avg Dish Quality: {avgQuality:F0}%   |   Avg Customer Satisfaction: {avgSatisfaction:F0}%\n" +
-                        $"Dish & Drink Points: {baseDishPointsTotal + drinkPointsTotal}   |   Quality/Combo Bonus: +{qualityBonusTotal + comboBonusTotal}\n" +
-                        $"Remaining Time Bonus ({FormatTime(remainingTime)}): +{timeBonus}" +
-                        rewardLine;
-                }
+                summaryBreakdownText.text = activeMode == GameMode.Endless
+                    ? $"Time Survived: {FormatTime(elapsedEndlessSeconds)}   |   Rush Tier Reached: Lv {currentEndlessTier + 1}"
+                    : (completedQuota
+                        ? $"Day {activeDay}: {activeDayConfig.shiftTitle}   |   Time Bonus: +{timeBonus} pts ({FormatTime(remainingTime)} left)"
+                        : $"Day {activeDay}: {activeDayConfig.shiftTitle}   |   Reach {shiftCustomerQuota} customers to clear the shift");
             }
+
+            // 4 Visual Stat Badges
+            if (summaryBadgeValues != null && summaryBadgeValues.Length >= 4)
+            {
+                summaryBadgeValues[0].text = activeMode == GameMode.Endless
+                    ? $"{customersCompletedCount} Served\n(Best {save.endlessBestServed})"
+                    : $"{customersCompletedCount} / {shiftCustomerQuota}\n(Lost: {customersLostCount})";
+
+                summaryBadgeValues[1].text = $"{dishesServedCount} Dishes\n{drinksServedCount} Drinks";
+
+                summaryBadgeValues[2].text = $"{combosCompletedCount} Combos\nBest x{highestComboStreak}";
+
+                summaryBadgeValues[3].text = activeMode == GameMode.Endless
+                    ? $"Best Score\n{save.endlessHighScore}"
+                    : (completedQuota ? $"+{awardedSkillPoints} Skill Pt\n(Total SP: {save.skillPoints})" : "0 Skill Pts\nTry Again!");
+            }
+
+            if (summaryQualityMeterFill != null) summaryQualityMeterFill.fillAmount = Mathf.Clamp01(avgQualityNormalized);
+            if (summaryQualityValueText != null) summaryQualityValueText.text = $"{avgQualityNormalized * 100f:F0}%";
+
+            if (summarySatisfactionMeterFill != null) summarySatisfactionMeterFill.fillAmount = Mathf.Clamp01(avgSatisfactionNormalized);
+            if (summarySatisfactionValueText != null) summarySatisfactionValueText.text = $"{avgSatisfactionNormalized * 100f:F0}%";
 
             if (summaryFinalScoreText != null)
             {
-                summaryFinalScoreText.text = $"Final Score: {totalScore}";
+                summaryFinalScoreText.text = $"Final Score: {totalScore:N0}";
             }
 
             bool showUpgradeShop = activeMode == GameMode.CampaignDay && completedQuota && upgradeShopButton != null;
@@ -506,7 +673,7 @@ namespace CookingSystem
             if (upgradeShopButtonLabel != null && showUpgradeShop)
             {
                 upgradeShopButtonLabel.text = activeDay >= ProgressionConfig.TotalCampaignDays
-                    ? "Upgrade Shop (Endless Next)"
+                    ? "Upgrade Shop (Endless)"
                     : "Upgrade Shop (+1 SP)";
             }
 
@@ -518,14 +685,9 @@ namespace CookingSystem
             }
 
             bool showEndlessLeaderboard = activeMode == GameMode.Endless;
-            if (leaderboardSubmitGroup != null)
-            {
-                leaderboardSubmitGroup.SetActive(showEndlessLeaderboard);
-            }
-            if (viewLeaderboardButton != null)
-            {
-                viewLeaderboardButton.gameObject.SetActive(showEndlessLeaderboard);
-            }
+            if (leaderboardSubmitGroup != null) leaderboardSubmitGroup.SetActive(showEndlessLeaderboard);
+            if (viewLeaderboardButton != null) viewLeaderboardButton.gameObject.SetActive(showEndlessLeaderboard);
+
             if (showEndlessLeaderboard)
             {
                 hasSubmittedLeaderboardScore = false;
@@ -539,19 +701,29 @@ namespace CookingSystem
                 {
                     mobileNamePromptButton.gameObject.SetActive(BrowserStorageBridge.IsMobileBrowser());
                 }
-                if (submitLeaderboardButton != null)
-                {
-                    submitLeaderboardButton.interactable = true;
-                }
-                if (submitLeaderboardButtonLabel != null)
-                {
-                    submitLeaderboardButtonLabel.text = "Save Score";
-                }
+                if (submitLeaderboardButton != null) submitLeaderboardButton.interactable = true;
+                if (submitLeaderboardButtonLabel != null) submitLeaderboardButtonLabel.text = "Save Score";
                 if (leaderboardSubmitStatusText != null)
                 {
                     leaderboardSubmitStatusText.text = "Enter up to 8 characters — saves in your browser!";
                 }
             }
+        }
+
+        private int ComputeEarnedStars(bool completedQuota, float avgSatisfactionNormalized)
+        {
+            if (activeMode == GameMode.Endless)
+            {
+                if (customersCompletedCount >= 14) return 3;
+                if (customersCompletedCount >= 7) return 2;
+                if (customersCompletedCount >= 2) return 1;
+                return 0;
+            }
+
+            if (!completedQuota) return customersCompletedCount > 0 ? 1 : 0;
+            if (avgSatisfactionNormalized >= 0.80f && customersLostCount <= 1) return 3;
+            if (avgSatisfactionNormalized >= 0.55f || remainingTime >= 30f) return 2;
+            return 1;
         }
 
         public void PromptMobileNameInput()
@@ -605,12 +777,14 @@ namespace CookingSystem
 
         public void GoToUpgradeShop()
         {
+            Time.timeScale = 1f;
             GameLaunchOptions.LoadFromSave = true;
             LoadingBridge.LoadScene(UpgradeShopSceneName, loadFromSave: true);
         }
 
         public void RestartLevel()
         {
+            Time.timeScale = 1f;
             GameLaunchOptions.SelectedMode = activeMode;
             GameLaunchOptions.SelectedDay = activeMode == GameMode.CampaignDay ? activeDay : 0;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -618,6 +792,7 @@ namespace CookingSystem
 
         public void GoToMainMenu()
         {
+            Time.timeScale = 1f;
             SceneManager.LoadScene("mainmenuscene");
         }
 
@@ -636,6 +811,10 @@ namespace CookingSystem
                 {
                     timerText.text = $"Shift: {FormatTime(elapsedEndlessSeconds)}";
                 }
+                else if (IsTimerPausedForTutorial)
+                {
+                    timerText.text = $"<color=#FDE047>Guide {FormatTime(remainingTime)}</color>";
+                }
                 else
                 {
                     string formatted = FormatTime(remainingTime);
@@ -652,18 +831,9 @@ namespace CookingSystem
                     : (levelDurationSeconds > 0f ? Mathf.Clamp01(remainingTime / levelDurationSeconds) : 0f);
 
                 timerFillBar.fillAmount = ratio;
-                if (ratio > 0.5f)
-                {
-                    timerFillBar.color = new Color(0.20f, 0.80f, 0.40f, 1f);
-                }
-                else if (ratio > 0.25f)
-                {
-                    timerFillBar.color = new Color(0.96f, 0.72f, 0.14f, 1f);
-                }
-                else
-                {
-                    timerFillBar.color = new Color(0.94f, 0.27f, 0.27f, 1f);
-                }
+                if (ratio > 0.5f) timerFillBar.color = new Color(0.20f, 0.80f, 0.40f, 1f);
+                else if (ratio > 0.25f) timerFillBar.color = new Color(0.96f, 0.72f, 0.14f, 1f);
+                else timerFillBar.color = new Color(0.94f, 0.27f, 0.27f, 1f);
 
                 if (timerThumbRect != null)
                 {
@@ -692,15 +862,19 @@ namespace CookingSystem
 
             if (comboText != null)
             {
-                if (activeMode == GameMode.Endless)
-                {
-                    comboText.text = $"Served: {customersCompletedCount} | x{Mathf.Max(1, currentStreak)}";
-                }
-                else
-                {
-                    comboText.text = currentStreak > 1 ? $"Streak x{currentStreak}" : "Streak x1";
-                }
+                comboText.text = activeMode == GameMode.Endless
+                    ? $"Served: {customersCompletedCount} | x{Mathf.Max(1, currentStreak)}"
+                    : (currentStreak > 1 ? $"Streak x{currentStreak}" : "Streak x1");
             }
+        }
+
+        private static bool WasEscapePressedThisFrame()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+#else
+            return Input.GetKeyDown(KeyCode.Escape);
+#endif
         }
 
         private static string FormatTime(float seconds)

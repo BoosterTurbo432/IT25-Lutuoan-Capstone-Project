@@ -1,4 +1,5 @@
 using System.Collections;
+using CookingSystem.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -41,6 +42,8 @@ namespace CookingSystem
         private Vector2 originalAnchoredPosition;
         private Vector3 originalScale;
         private bool isConsumed;
+        private bool isDragging;
+        private bool isInitialized;
         private Coroutine snapBackCoroutine;
 
         public TrayItemKind Kind { get; private set; } = TrayItemKind.None;
@@ -50,6 +53,12 @@ namespace CookingSystem
 
         private void Awake()
         {
+            EnsureInitialized();
+        }
+
+        private void EnsureInitialized()
+        {
+            if (isInitialized) return;
             rectTransform = GetComponent<RectTransform>();
             canvasGroup = GetComponent<CanvasGroup>();
             if (iconImage == null) iconImage = GetComponent<Image>();
@@ -57,14 +66,16 @@ namespace CookingSystem
             Canvas parentCanvas = GetComponentInParent<Canvas>();
             if (parentCanvas != null) rootCanvas = parentCanvas.rootCanvas;
 
-            originalScale = rectTransform.localScale;
+            originalScale = rectTransform.localScale == Vector3.zero ? Vector3.one : rectTransform.localScale;
             originalAnchoredPosition = rectTransform.anchoredPosition;
+            isInitialized = true;
         }
 
         public void SetRestPosition(Vector2 newAnchoredPos)
         {
+            EnsureInitialized();
             originalAnchoredPosition = newAnchoredPos;
-            if (!isConsumed && rectTransform != null && (originalParent == null || rectTransform.parent == originalParent))
+            if (!isConsumed && !isDragging && rectTransform != null && (originalParent == null || rectTransform.parent == originalParent))
             {
                 rectTransform.anchoredPosition = newAnchoredPos;
             }
@@ -72,6 +83,7 @@ namespace CookingSystem
 
         public void ConfigureMeal(DishPayload payload, FoodDisplaySlot owner)
         {
+            EnsureInitialized();
             Kind = TrayItemKind.Meal;
             MealPayload = payload;
             DrinkKind = DrinkType.None;
@@ -104,6 +116,7 @@ namespace CookingSystem
 
         public void ConfigureDrink(DrinkType drink, FoodDisplaySlot owner)
         {
+            EnsureInitialized();
             Kind = TrayItemKind.Drink;
             MealPayload = null;
             DrinkKind = drink;
@@ -136,17 +149,21 @@ namespace CookingSystem
 
         public void ClearItem()
         {
+            EnsureInitialized();
             Kind = TrayItemKind.None;
             MealPayload = null;
             DrinkKind = DrinkType.None;
             isConsumed = false;
+            isDragging = false;
             ReturnToSlotImmediate();
             gameObject.SetActive(false);
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            EnsureInitialized();
             if (isConsumed || Kind == TrayItemKind.None) return;
+            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
 
             if (snapBackCoroutine != null)
             {
@@ -170,6 +187,8 @@ namespace CookingSystem
             }
             transform.SetAsLastSibling();
 
+            isDragging = true;
+            GameAudioManager.Instance?.PlayTapPickup();
             canvasGroup.blocksRaycasts = false;
             canvasGroup.alpha = 0.85f;
             rectTransform.localScale = originalScale * 1.12f;
@@ -177,7 +196,7 @@ namespace CookingSystem
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (isConsumed || Kind == TrayItemKind.None) return;
+            if (!isDragging || isConsumed || Kind == TrayItemKind.None) return;
 
             float scaleFactor = rootCanvas != null ? rootCanvas.scaleFactor : 1f;
             rectTransform.anchoredPosition += eventData.delta / scaleFactor;
@@ -185,6 +204,9 @@ namespace CookingSystem
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (!isDragging) return;
+            isDragging = false;
+
             canvasGroup.blocksRaycasts = true;
             canvasGroup.alpha = 1f;
             rectTransform.localScale = originalScale;
@@ -197,6 +219,7 @@ namespace CookingSystem
         public void NotifyConsumed()
         {
             isConsumed = true;
+            isDragging = false;
             if (snapBackCoroutine != null)
             {
                 StopCoroutine(snapBackCoroutine);

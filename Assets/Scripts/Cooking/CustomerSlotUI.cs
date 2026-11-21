@@ -1,4 +1,5 @@
 using System.Collections;
+using CookingSystem.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -92,7 +93,11 @@ namespace CookingSystem
         private void Update()
         {
             if (!isOccupied || isLeaving) return;
-            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
+            if (LevelGameManager.Instance != null &&
+                (!LevelGameManager.Instance.IsLevelActive || LevelGameManager.Instance.IsTimerPausedForTutorial))
+            {
+                return;
+            }
 
             if (patienceFreezeTimer > 0f)
             {
@@ -269,6 +274,7 @@ namespace CookingSystem
                 string msg = orderType == OrderType.DrinkOnly
                     ? $"Customer {slotIndex} only ordered a drink!"
                     : $"Customer {slotIndex} already received their meal!";
+                GameAudioManager.Instance?.PlayNotSatisfied();
                 DishNotificationUI.Instance?.ShowNotification(msg);
                 ShowTemporaryFeedback("<color=#F59E0B>Wrong item for order</color>", 1.8f);
                 return;
@@ -288,12 +294,13 @@ namespace CookingSystem
             trayItem.NotifyConsumed();
             mealDelivered = true;
 
-            LevelGameManager.Instance?.RegisterMealDelivery(awardedBase, quality, satisfaction);
+            bool completesMealDrinkCombo = orderType == OrderType.MealAndDrink && drinkDelivered;
+            LevelGameManager.Instance?.RegisterMealDelivery(awardedBase, quality, satisfaction, accuracy >= 0.55f, completesMealDrinkCombo);
 
             string qualityTag = satisfaction >= 0.85f ? "Perfect!" : (accuracy >= 0.99f ? "Great!" : "Wrong Dish");
             Color msgColor = satisfaction >= 0.7f ? new Color(0.22f, 0.80f, 0.46f, 1f) : new Color(0.96f, 0.62f, 0.14f, 1f);
 
-            if (orderType == OrderType.MealAndDrink && drinkDelivered)
+            if (completesMealDrinkCombo)
             {
                 LevelGameManager.Instance?.RegisterComboCompletion();
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
@@ -334,6 +341,7 @@ namespace CookingSystem
                 patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * effectiveRestore));
                 patienceFreezeTimer = effectiveFreeze;
                 RefreshPatienceUI(paused: true);
+                GameAudioManager.Instance?.PlaySatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(35, isComboWithMeal: false, satisfaction: -1f);
                 ShowTemporaryFeedback("<color=#38BDF8>Drink Refreshed Patience!</color>", 2.0f);
                 return;
@@ -341,6 +349,7 @@ namespace CookingSystem
 
             if (drinkDelivered)
             {
+                GameAudioManager.Instance?.PlayNotSatisfied();
                 DishNotificationUI.Instance?.ShowNotification($"Customer {slotIndex} already has their drink!");
                 return;
             }
@@ -364,6 +373,8 @@ namespace CookingSystem
 
             if (orderType == OrderType.DrinkOnly)
             {
+                if (exactDrink) GameAudioManager.Instance?.PlaySatisfied();
+                else GameAudioManager.Instance?.PlayNotSatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: satisfaction);
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
                 string tag = exactDrink ? "Refreshed!" : "Wrong Drink";
@@ -383,6 +394,8 @@ namespace CookingSystem
             else
             {
                 // Drink served before meal on MealAndDrink: freeze patience while waiting for meal
+                if (exactDrink) GameAudioManager.Instance?.PlaySatisfied();
+                else GameAudioManager.Instance?.PlayNotSatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: -1f);
                 RefreshOrderBubble();
                 ShowTemporaryFeedback("<color=#38BDF8>Drink Served! Patience Paused</color>", 2.5f);
@@ -391,6 +404,7 @@ namespace CookingSystem
 
         private void HandlePatienceExpired()
         {
+            GameAudioManager.Instance?.PlayNotSatisfied();
             LevelGameManager.Instance?.RegisterCustomerLost();
             DishNotificationUI.Instance?.ShowNotification($"Customer {slotIndex} ran out of patience and left!");
             BeginLeave("LEFT ANGRY!\nPatience 0%", new Color(0.94f, 0.27f, 0.27f, 1f));

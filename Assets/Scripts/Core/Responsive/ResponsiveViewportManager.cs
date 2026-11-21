@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -221,6 +222,30 @@ namespace CookingSystem.Core.Responsive
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 scaler.referenceResolution = targetReference;
                 scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+
+                ApplyAutoScaleTypography(canvas);
+            }
+        }
+
+        private static void ApplyAutoScaleTypography(Canvas canvas)
+        {
+            TextMeshProUGUI[] labels = canvas.GetComponentsInChildren<TextMeshProUGUI>(true);
+            for (int i = 0; i < labels.Length; i++)
+            {
+                TextMeshProUGUI tmp = labels[i];
+                if (tmp == null) continue;
+                if (tmp.GetComponentInParent<TMP_InputField>() != null) continue;
+
+                float maxPt = tmp.enableAutoSizing && tmp.fontSizeMax > 0f ? tmp.fontSizeMax : tmp.fontSize;
+                if (maxPt <= 0f) continue;
+
+                tmp.enableAutoSizing = true;
+                tmp.fontSizeMax = maxPt;
+                float clampedMin = Mathf.Clamp(maxPt * 0.52f, 9f, maxPt);
+                if (tmp.fontSizeMin <= 0f || tmp.fontSizeMin > maxPt)
+                {
+                    tmp.fontSizeMin = clampedMin;
+                }
             }
         }
 

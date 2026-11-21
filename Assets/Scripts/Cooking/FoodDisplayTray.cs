@@ -13,6 +13,9 @@ namespace CookingSystem
         [SerializeField] private List<FoodDisplaySlot> slots = new List<FoodDisplaySlot>();
         [SerializeField] private List<CookingStation> cookingStations = new List<CookingStation>();
 
+        public event System.Action onMealPlaced;
+        public event System.Action onDrinkPlaced;
+
         public bool HasFreeSlot
         {
             get
@@ -56,6 +59,7 @@ namespace CookingSystem
                 if (slot != null && !slot.IsOccupied)
                 {
                     slot.SetMeal(payload);
+                    onMealPlaced?.Invoke();
                     return true;
                 }
             }
@@ -72,6 +76,7 @@ namespace CookingSystem
                 if (slot != null && !slot.IsOccupied)
                 {
                     slot.SetDrink(drink);
+                    onDrinkPlaced?.Invoke();
                     return true;
                 }
             }

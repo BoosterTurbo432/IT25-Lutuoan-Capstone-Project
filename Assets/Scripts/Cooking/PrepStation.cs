@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CookingSystem.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -40,6 +41,10 @@ namespace CookingSystem
         [SerializeField] private Button assignPanButton;
         [SerializeField] private Button resetPrepButton;
 
+        [Header("Smart Cookware Highlights")]
+        [SerializeField] private Image potRecommendGlow;
+        [SerializeField] private Image panRecommendGlow;
+
         [Header("Precision Timing Bar")]
         [SerializeField] private GameObject precisionBarRoot;
         [SerializeField] private RectTransform precisionCursor;
@@ -76,11 +81,24 @@ namespace CookingSystem
         private float effectiveSweepSpeed = 1.45f;
 
         public PrepStage CurrentStage => currentStage;
+        public int IngredientCount => currentIngredients.Count;
+        public CookwareType? RecommendedCookware { get; private set; }
+
+        public event System.Action<int> onIngredientsChanged;
+        public event System.Action<PrepStage> onStageChanged;
 
         private void Awake()
         {
-            if (chopButton != null) chopButton.onClick.AddListener(HandleChopClicked);
-            if (mixButton != null) mixButton.onClick.AddListener(HandleMixClicked);
+            if (chopButton != null)
+            {
+                chopButton.onClick.AddListener(HandleChopClicked);
+                UIClickAudioHook.SetSuppressed(chopButton, true);
+            }
+            if (mixButton != null)
+            {
+                mixButton.onClick.AddListener(HandleMixClicked);
+                UIClickAudioHook.SetSuppressed(mixButton, true);
+            }
             if (assignPotButton != null) assignPotButton.onClick.AddListener(() => HandleAssignCookware(CookwareType.Pot));
             if (assignPanButton != null) assignPanButton.onClick.AddListener(() => HandleAssignCookware(CookwareType.Pan));
             if (resetPrepButton != null) resetPrepButton.onClick.AddListener(ResetPrep);
@@ -89,6 +107,22 @@ namespace CookingSystem
             {
                 preparedDishToken.gameObject.SetActive(false);
             }
+
+            if (precisionBarRoot != null)
+            {
+                Button barBtn = precisionBarRoot.GetComponent<Button>();
+                if (barBtn != null)
+                {
+                    barBtn.onClick.AddListener(HandlePrecisionBarClick);
+                    UIClickAudioHook.SetSuppressed(barBtn, true);
+                }
+            }
+        }
+
+        private void HandlePrecisionBarClick()
+        {
+            if (currentStage == PrepStage.Chopping) HandleChopClicked();
+            else if (currentStage == PrepStage.Mixing) HandleMixClicked();
         }
 
         private void Start()
@@ -117,8 +151,6 @@ namespace CookingSystem
 
         private void Update()
         {
-            if (LevelGameManager.Instance != null && LevelGameManager.Instance.IsTutorialOpen) return;
-
             if (currentStage == PrepStage.Chopping || currentStage == PrepStage.Mixing)
             {
                 cursorPhase += Time.deltaTime * effectiveSweepSpeed;
@@ -127,6 +159,18 @@ namespace CookingSystem
                 {
                     float x = (normalized - 0.5f) * barTravelWidth;
                     precisionCursor.anchoredPosition = new Vector2(x, precisionCursor.anchoredPosition.y);
+                }
+            }
+
+            if (currentStage == PrepStage.AssigningCookware && RecommendedCookware.HasValue)
+            {
+                float alpha = 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 5.2f);
+                Image activeGlow = RecommendedCookware.Value == CookwareType.Pot ? potRecommendGlow : panRecommendGlow;
+                if (activeGlow != null && activeGlow.enabled)
+                {
+                    Color c = activeGlow.color;
+                    c.a = alpha;
+                    activeGlow.color = c;
                 }
             }
         }
@@ -157,6 +201,7 @@ namespace CookingSystem
             currentIngredients.Add(ingredient.Type);
             ingredient.NotifyAcceptedByStation(null);
             Destroy(ingredient.gameObject);
+            GameAudioManager.Instance?.PlayTapPickup();
 
             if (currentStage == PrepStage.CollectingIngredients)
             {
@@ -165,12 +210,15 @@ namespace CookingSystem
             }
 
             RefreshUI();
+            onIngredientsChanged?.Invoke(currentIngredients.Count);
+            onStageChanged?.Invoke(currentStage);
         }
 
         private void HandleChopClicked()
         {
             if (currentStage != PrepStage.Chopping || currentIngredients.Count == 0) return;
 
+            GameAudioManager.Instance?.PlayChop();
             float accuracy = EvaluateTimingBarScore();
             float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 4f);
             chopScore = Mathf.Clamp01(accuracy * 0.75f + speedFactor * 0.25f);
@@ -179,12 +227,14 @@ namespace CookingSystem
             stageStartTime = Time.time;
             cursorPhase = 0.2f;
             RefreshUI();
+            onStageChanged?.Invoke(currentStage);
         }
 
         private void HandleMixClicked()
         {
             if (currentStage != PrepStage.Mixing) return;
 
+            GameAudioManager.Instance?.PlayMix();
             float accuracy = EvaluateTimingBarScore();
             float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 4f);
             mixScore = Mathf.Clamp01(accuracy * 0.75f + speedFactor * 0.25f);
@@ -192,6 +242,7 @@ namespace CookingSystem
             currentStage = PrepStage.AssigningCookware;
             stageStartTime = Time.time;
             RefreshUI();
+            onStageChanged?.Invoke(currentStage);
         }
 
         private void HandleAssignCookware(CookwareType cookware)
@@ -231,6 +282,7 @@ namespace CookingSystem
             }
 
             RefreshUI();
+            onStageChanged?.Invoke(currentStage);
         }
 
         public void NotifyDishMovedToStove()
@@ -245,13 +297,17 @@ namespace CookingSystem
             chopScore = 0f;
             mixScore = 0f;
             cursorPhase = 0f;
+            RecommendedCookware = null;
 
             if (preparedDishToken != null)
             {
                 preparedDishToken.gameObject.SetActive(false);
             }
 
+            CookingStation.HighlightRecommendedStations(null, false);
             RefreshUI();
+            onIngredientsChanged?.Invoke(0);
+            onStageChanged?.Invoke(currentStage);
         }
 
         private float EvaluateTimingBarScore()
@@ -284,15 +340,26 @@ namespace CookingSystem
                 }
             }
 
+            RecommendedCookware = null;
+            string recommendedLabel = "Pick Pot or Pan";
+            if (currentStage == PrepStage.AssigningCookware &&
+                RecipeDatabase.TryGetRecommendedCookware(currentIngredients, out CookwareType recWare, out _))
+            {
+                RecommendedCookware = recWare;
+                recommendedLabel = recWare == CookwareType.Pot
+                    ? $"Mix {mixScore * 100f:F0}% | Recommended: Ladle (Pot)"
+                    : $"Mix {mixScore * 100f:F0}% | Recommended: Spatula (Pan)";
+            }
+
             if (stageStatusText != null)
             {
                 stageStatusText.text = currentStage switch
                 {
                     PrepStage.CollectingIngredients => "Drag Ingredients Here",
-                    PrepStage.Chopping => "Click Chop on Green!",
-                    PrepStage.Mixing => $"Chop {chopScore * 100f:F0}% | Click Mix!",
-                    PrepStage.AssigningCookware => $"Mix {mixScore * 100f:F0}% | Pick Pot or Pan",
-                    PrepStage.ReadyForStove => "Drag Vessel to Stove!",
+                    PrepStage.Chopping => "Click Chop (or Bar) on Green!",
+                    PrepStage.Mixing => $"Chop {chopScore * 100f:F0}% | Click Mix on Green!",
+                    PrepStage.AssigningCookware => recommendedLabel,
+                    PrepStage.ReadyForStove => "Drag Vessel to Glowing Burner!",
                     _ => string.Empty
                 };
             }
@@ -302,19 +369,41 @@ namespace CookingSystem
 
             if (chopButton != null)
             {
-                chopButton.gameObject.SetActive(currentStage == PrepStage.Chopping);
+                chopButton.gameObject.SetActive(true);
                 chopButton.interactable = currentStage == PrepStage.Chopping && currentIngredients.Count > 0;
             }
 
             if (mixButton != null)
             {
-                mixButton.gameObject.SetActive(currentStage == PrepStage.Mixing);
+                mixButton.gameObject.SetActive(true);
                 mixButton.interactable = currentStage == PrepStage.Mixing;
             }
 
             bool canAssign = currentStage == PrepStage.AssigningCookware;
             if (assignPotButton != null) assignPotButton.interactable = canAssign;
             if (assignPanButton != null) assignPanButton.interactable = canAssign;
+
+            if (potRecommendGlow != null)
+            {
+                potRecommendGlow.enabled = canAssign && RecommendedCookware == CookwareType.Pot;
+            }
+            if (panRecommendGlow != null)
+            {
+                panRecommendGlow.enabled = canAssign && RecommendedCookware == CookwareType.Pan;
+            }
+
+            if (canAssign && RecommendedCookware.HasValue)
+            {
+                CookingStation.HighlightRecommendedStations(RecommendedCookware.Value, isReadyForDrop: false);
+            }
+            else if (currentStage == PrepStage.ReadyForStove && preparedDishToken != null && preparedDishToken.Payload != null)
+            {
+                CookingStation.HighlightRecommendedStations(preparedDishToken.Payload.cookwareUsed, isReadyForDrop: true);
+            }
+            else
+            {
+                CookingStation.HighlightRecommendedStations(null, isReadyForDrop: false);
+            }
 
             if (resetPrepButton != null)
             {

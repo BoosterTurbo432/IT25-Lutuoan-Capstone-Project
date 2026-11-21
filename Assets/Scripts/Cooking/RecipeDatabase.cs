@@ -346,6 +346,71 @@ namespace CookingSystem
             return null;
         }
 
+        /// <summary>
+        /// Recommends Pot or Pan on the stove based on the player's currently prepped ingredients.
+        /// </summary>
+        public static bool TryGetRecommendedCookware(
+            IReadOnlyList<IngredientType> ingredients,
+            out CookwareType recommendedCookware,
+            out string matchedDishName)
+        {
+            recommendedCookware = CookwareType.Pot;
+            matchedDishName = string.Empty;
+            if (ingredients == null || ingredients.Count == 0) return false;
+
+            RecipeDefinition exactPot = FindBestMatch(ingredients, CookwareType.Pot, out float potAcc);
+            if (exactPot != null && potAcc >= 0.99f)
+            {
+                recommendedCookware = CookwareType.Pot;
+                matchedDishName = exactPot.displayName;
+                return true;
+            }
+
+            RecipeDefinition exactPan = FindBestMatch(ingredients, CookwareType.Pan, out float panAcc);
+            if (exactPan != null && panAcc >= 0.99f)
+            {
+                recommendedCookware = CookwareType.Pan;
+                matchedDishName = exactPan.displayName;
+                return true;
+            }
+
+            // Pick best overlap recipe across Pot/Pan
+            RecipeDefinition bestOverlapRecipe = null;
+            float bestOverlap = -1f;
+            for (int i = 0; i < AllRecipes.Count; i++)
+            {
+                float ov = ComputeOverlapRatio(ingredients, AllRecipes[i].requiredIngredients);
+                if (ov > bestOverlap)
+                {
+                    bestOverlap = ov;
+                    bestOverlapRecipe = AllRecipes[i];
+                }
+            }
+
+            if (bestOverlapRecipe != null && bestOverlap > 0.2f)
+            {
+                recommendedCookware = bestOverlapRecipe.requiredCookware;
+                matchedDishName = bestOverlapRecipe.displayName;
+                return true;
+            }
+
+            // Simple heuristic fallback
+            bool hasPanHeavy = false;
+            for (int i = 0; i < ingredients.Count; i++)
+            {
+                if (ingredients[i] == IngredientType.Cheese || ingredients[i] == IngredientType.Pork ||
+                    ingredients[i] == IngredientType.Onion || ingredients[i] == IngredientType.Garlic)
+                {
+                    hasPanHeavy = true;
+                    break;
+                }
+            }
+
+            recommendedCookware = hasPanHeavy ? CookwareType.Pan : CookwareType.Pot;
+            matchedDishName = GetFallbackDishName(ingredients, recommendedCookware);
+            return true;
+        }
+
         public static string GetFallbackDishName(IReadOnlyList<IngredientType> ingredients, CookwareType cookware)
         {
             if (ingredients == null || ingredients.Count == 0) return "Carinderia Special Ulam";

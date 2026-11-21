@@ -43,6 +43,7 @@ namespace CookingSystem
         private float spawnTimer;
         private int totalSpawned;
         private bool spawningEnabled = true;
+        private bool slotsInitialized;
         private float mealOnlyChance = 0.45f;
         private float drinkOnlyChance = 0.25f;
         private float hospitalityPatienceMult = 1f;
@@ -71,12 +72,23 @@ namespace CookingSystem
 
         private void Start()
         {
+            InitializeSlotsIfNeeded();
+            spawnTimer = initialSpawnDelay;
+        }
+
+        private void InitializeSlotsIfNeeded()
+        {
+            if (slotsInitialized) return;
+            slotsInitialized = true;
             for (int i = 0; i < customerSlots.Count; i++)
             {
                 if (customerSlots[i] != null) customerSlots[i].InitializeEmpty();
             }
+        }
 
-            spawnTimer = initialSpawnDelay;
+        public void ResumeAfterTutorial()
+        {
+            spawnTimer = 1.0f;
         }
 
         public void ConfigureForSession(GameMode mode, int day, SaveData save)
@@ -116,7 +128,11 @@ namespace CookingSystem
         private void Update()
         {
             if (!spawningEnabled) return;
-            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
+            if (LevelGameManager.Instance != null &&
+                (!LevelGameManager.Instance.IsLevelActive || LevelGameManager.Instance.IsTimerPausedForTutorial))
+            {
+                return;
+            }
 
             spawnTimer -= Time.deltaTime;
             if (spawnTimer <= 0f)
@@ -127,8 +143,10 @@ namespace CookingSystem
             }
         }
 
-        public bool TrySpawnCustomer()
+        public bool TrySpawnCustomer(bool forceTutorialMeal = false)
         {
+            InitializeSlotsIfNeeded();
+
             var freeSlots = new List<CustomerSlotUI>();
             for (int i = 0; i < customerSlots.Count; i++)
             {
@@ -140,11 +158,13 @@ namespace CookingSystem
 
             if (freeSlots.Count == 0) return false;
 
-            CustomerSlotUI target = freeSlots[UnityEngine.Random.Range(0, freeSlots.Count)];
-            OrderType orderType = RollOrderType();
+            CustomerSlotUI target = forceTutorialMeal ? freeSlots[0] : freeSlots[UnityEngine.Random.Range(0, freeSlots.Count)];
+            OrderType orderType = forceTutorialMeal ? OrderType.MealOnly : RollOrderType();
             RecipeDefinition recipe = orderType == OrderType.DrinkOnly
                 ? null
-                : RecipeDatabase.GetRandomRecipeForDay(activeRecipeUnlockDay);
+                : (forceTutorialMeal
+                    ? (RecipeDatabase.GetById("sinigang_kamatis") ?? RecipeDatabase.GetRandomRecipeForDay(1))
+                    : RecipeDatabase.GetRandomRecipeForDay(activeRecipeUnlockDay));
             DrinkType drink = orderType == OrderType.MealOnly
                 ? DrinkType.None
                 : (UnityEngine.Random.value < 0.5f ? DrinkType.BerryJuice : DrinkType.CalamansiTea);

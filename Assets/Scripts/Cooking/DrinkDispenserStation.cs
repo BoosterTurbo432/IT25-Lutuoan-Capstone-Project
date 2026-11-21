@@ -1,4 +1,5 @@
 using System.Collections;
+using CookingSystem.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -51,6 +52,7 @@ namespace CookingSystem
         {
             if (!CanStartPour || drink == DrinkType.None) return;
 
+            GameAudioManager.Instance?.PlayDrink();
             if (pourCoroutine != null) StopCoroutine(pourCoroutine);
             pourCoroutine = StartCoroutine(PourRoutine(drink));
         }

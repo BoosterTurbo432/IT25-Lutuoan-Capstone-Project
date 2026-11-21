@@ -79,6 +79,20 @@ namespace CookingSystem
         private void ApplyIconOverride(DraggableIngredient ingredient)
         {
             if (ingredient == null) return;
+            var rt = ingredient.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = spawnAnchoredPosition;
+                if (overrideIconSize != Vector2.zero)
+                {
+                    rt.sizeDelta = overrideIconSize;
+                }
+            }
+            ingredient.SetRestPosition(spawnAnchoredPosition);
+
             if (useIngredientIdentityOverride)
             {
                 ingredient.ConfigureIdentity(overrideIngredientType, overrideIngredientName);
@@ -92,11 +106,6 @@ namespace CookingSystem
                     img.color = Color.white;
                     img.preserveAspect = true;
                 }
-            }
-            if (overrideIconSize != Vector2.zero)
-            {
-                var rt = ingredient.GetComponent<RectTransform>();
-                if (rt != null) rt.sizeDelta = overrideIconSize;
             }
         }
 

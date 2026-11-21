@@ -1,4 +1,5 @@
 using System.Collections;
+using CookingSystem.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -110,6 +111,7 @@ namespace CookingSystem
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (isDroppedOnStation) return;
+            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
 
             // Stop any ongoing snap-back coroutine
             if (snapBackCoroutine != null)
@@ -119,6 +121,7 @@ namespace CookingSystem
             }
 
             IsBeingDragged = true;
+            GameAudioManager.Instance?.PlayTapPickup();
 
             if (rootCanvas == null)
             {

@@ -1,4 +1,5 @@
 using System.Collections;
+using CookingSystem.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -25,24 +26,34 @@ namespace CookingSystem
         private int originalSiblingIndex;
         private Vector2 originalAnchoredPosition;
         private Vector3 originalScale;
+        private bool isDragging;
+        private bool isInitialized;
         private Coroutine snapBackCoroutine;
 
         private void Awake()
         {
+            EnsureInitialized();
+        }
+
+        private void EnsureInitialized()
+        {
+            if (isInitialized) return;
             rectTransform = GetComponent<RectTransform>();
             canvasGroup = GetComponent<CanvasGroup>();
 
             Canvas parentCanvas = GetComponentInParent<Canvas>();
             if (parentCanvas != null) rootCanvas = parentCanvas.rootCanvas;
 
-            originalScale = rectTransform.localScale;
+            originalScale = rectTransform.localScale == Vector3.zero ? Vector3.one : rectTransform.localScale;
             originalAnchoredPosition = rectTransform.anchoredPosition;
+            isInitialized = true;
         }
 
         public void SetRestPosition(Vector2 newAnchoredPos)
         {
+            EnsureInitialized();
             originalAnchoredPosition = newAnchoredPos;
-            if (rectTransform != null && (originalParent == null || rectTransform.parent == originalParent))
+            if (!isDragging && rectTransform != null && (originalParent == null || rectTransform.parent == originalParent))
             {
                 rectTransform.anchoredPosition = newAnchoredPos;
             }
@@ -50,6 +61,9 @@ namespace CookingSystem
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            EnsureInitialized();
+            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
+
             if (snapBackCoroutine != null)
             {
                 StopCoroutine(snapBackCoroutine);
@@ -72,6 +86,8 @@ namespace CookingSystem
             }
             transform.SetAsLastSibling();
 
+            isDragging = true;
+            GameAudioManager.Instance?.PlayTapPickup();
             canvasGroup.blocksRaycasts = false;
             canvasGroup.alpha = 0.85f;
             rectTransform.localScale = originalScale * 1.1f;
@@ -79,12 +95,15 @@ namespace CookingSystem
 
         public void OnDrag(PointerEventData eventData)
         {
+            if (!isDragging) return;
             float scaleFactor = rootCanvas != null ? rootCanvas.scaleFactor : 1f;
             rectTransform.anchoredPosition += eventData.delta / scaleFactor;
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (!isDragging) return;
+            isDragging = false;
             canvasGroup.blocksRaycasts = true;
             canvasGroup.alpha = 1f;
             rectTransform.localScale = originalScale;

@@ -33,6 +33,8 @@ namespace CookingSystem.EditorTools
             anyCreated |= EnsurePng("UI_TimerTrackSlot.png", 260, 40, GenerateTimerTrackSlot);
             anyCreated |= EnsurePng("UI_TimerFillPill.png", 280, 28, GenerateTimerFillPill);
             anyCreated |= EnsurePng("UI_PatienceFillPill.png", 28, 340, GeneratePatienceFillPill);
+            anyCreated |= EnsurePng("UI_StarFilled.png", 128, 128, GenerateStarFilled);
+            anyCreated |= EnsurePng("UI_StarEmpty.png", 128, 128, GenerateStarEmpty);
             anyCreated |= EnsurePng("UI_BtnRestart.png", 160, 68, GenerateRestartBtn);
             anyCreated |= EnsurePng("UI_BtnMenu.png", 160, 68, GenerateMenuBtn);
 
@@ -479,6 +481,65 @@ namespace CookingSystem.EditorTools
             tex.SetPixels32(pixels);
             tex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             return tex;
+        }
+
+        private static Texture2D GenerateStarFilled(int w, int h)
+        {
+            return GenerateStarTexture(w, h, Hex("FBBF24"), Hex("FEF08A"), Hex("78350F"));
+        }
+
+        private static Texture2D GenerateStarEmpty(int w, int h)
+        {
+            return GenerateStarTexture(w, h, new Color(0.24f, 0.16f, 0.12f, 0.85f), new Color(0.30f, 0.21f, 0.16f, 0.85f), Hex("140C08"));
+        }
+
+        private static Texture2D GenerateStarTexture(int w, int h, Color fill, Color highlight, Color borderColor)
+        {
+            float outerRadius = w * 0.43f;
+            return BuildTexture(w, h, (x, y) =>
+            {
+                float px = x - w * 0.5f;
+                float py = y - h * 0.5f;
+                float d = Star5Sdf(px, py, outerRadius, 0.46f);
+                if (d > 2.2f) return new Color(0f, 0f, 0f, 0f);
+
+                Color c = d > -2.8f
+                    ? borderColor
+                    : Color.Lerp(fill, highlight, Mathf.Clamp01((py / outerRadius) * 0.55f + 0.35f));
+
+                if (d > 0f)
+                {
+                    c.a *= Mathf.Clamp01(1f - d / 2.2f);
+                }
+                return c;
+            });
+        }
+
+        private static float Star5Sdf(float px, float py, float r, float rf)
+        {
+            const float an = Mathf.PI / 5f;
+            float angle = Mathf.Atan2(px, py);
+            float bn = ((angle % (2f * an)) + (2f * an)) % (2f * an) - an;
+            float len = Mathf.Sqrt(px * px + py * py);
+            float qx = len * Mathf.Abs(Mathf.Sin(bn));
+            float qy = len * Mathf.Cos(bn);
+
+            float ax = 0f;
+            float ay = r;
+            float bx = rf * r * Mathf.Sin(an);
+            float by = rf * r * Mathf.Cos(an);
+
+            float abx = bx - ax;
+            float aby = by - ay;
+            float apx = qx - ax;
+            float apy = qy - ay;
+
+            float t = Mathf.Clamp01((apx * abx + apy * aby) / (abx * abx + aby * aby));
+            float cx = ax + abx * t;
+            float cy = ay + aby * t;
+            float dist = Mathf.Sqrt((qx - cx) * (qx - cx) + (qy - cy) * (qy - cy));
+            float sign = Mathf.Sign(abx * apy - aby * apx);
+            return dist * (sign == 0f ? -1f : sign);
         }
 
         private static float RoundedRectSdf(float px, float py, float halfW, float halfH, float r)

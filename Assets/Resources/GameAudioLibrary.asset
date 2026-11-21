@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 800dc9738a70b104e8f9fa3d07166000, type: 3}
+  m_Name: GameAudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::CookingSystem.Audio.GameAudioLibrary
+  mainMenuBg: {fileID: 8300000, guid: f120caaab7afdc648a2ca4a06a5cc203, type: 3}
+  gameBg: {fileID: 8300000, guid: d0435ed13a649394799c95fc9b89b9f5, type: 3}
+  endlessModeBg: {fileID: 8300000, guid: 1b87d86bbf331974bad20498ea12327c, type: 3}
+  click: {fileID: 8300000, guid: 718a183b29055a84eb99018aa19d1785, type: 3}
+  chop: {fileID: 8300000, guid: 9bce78125cac20345bff796146964e3e, type: 3}
+  mix: {fileID: 8300000, guid: dd2052319cbbb9245bc7d0750d2ef19f, type: 3}
+  cooked: {fileID: 8300000, guid: 6bc98f70c23c91741b51644f5745ff7e, type: 3}
+  overcooked: {fileID: 8300000, guid: 5dbfdf81936e9ca468646a1116227bbc, type: 3}
+  drink: {fileID: 8300000, guid: bc7ae43823547ed478e2d67d45d1a3f7, type: 3}
+  satisfied: {fileID: 8300000, guid: b634893967e97f94284a340110d85f12, type: 3}
+  notSatisfied: {fileID: 8300000, guid: 8857f7976e4b1b24e8b6f7119e863296, type: 3}
+  comboStreak: {fileID: 8300000, guid: d1e3ef363f539a84498a13a423f30ffa, type: 3}
+  victory: {fileID: 8300000, guid: 9b4402bf4e143c540b4ee142fcf67524, type: 3}
+  fail: {fileID: 8300000, guid: 390927a0425068745b073e101f26d241, type: 3}
+  mainMenuBgScale: 0.55
+  gameBgScale: 0.48
+  endlessBgScale: 0.5
+  clickScale: 0.78
+  chopScale: 0.9
+  mixScale: 0.88
+  cookedScale: 0.92
+  overcookedScale: 0.72
+  drinkScale: 0.88
+  satisfiedScale: 0.9
+  notSatisfiedScale: 0.92
+  comboStreakScale: 0.92
+  victoryScale: 0.95
+  failScale: 0.95

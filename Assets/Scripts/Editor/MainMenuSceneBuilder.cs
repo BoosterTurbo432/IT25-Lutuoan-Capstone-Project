@@ -550,23 +550,24 @@ namespace CookingSystem.EditorTools
                 if (active.isDirty) return;
                 bool hasUpgrades = active.GetRootGameObjects().Any(r =>
                     r.transform.Find("MainMenuGroup/EndlessModeButton") != null &&
-                    r.transform.Find("MainMenuGroup/LeaderboardButton") != null);
+                    r.transform.Find("MainMenuGroup/LeaderboardButton") != null &&
+                    r.transform.Find("PopupLayer/SettingsPopup/Window/SfxVolumeRow") != null);
                 if (!hasUpgrades && Build(active))
                 {
                     EditorSceneManager.SaveScene(active);
-                    Debug.Log("[MainMenuSceneBuilder] Added EndlessModeButton & LeaderboardButton to mainmenuscene.unity.");
+                    Debug.Log("[MainMenuSceneBuilder] Upgraded mainmenuscene.unity with Endless, Leaderboard, and Music/SFX volume sliders.");
                 }
                 return;
             }
 
             string raw = System.IO.File.ReadAllText(BuildSceneListSetup.MainMenuScenePath);
-            if (!raw.Contains("EndlessModeButton") || !raw.Contains("LeaderboardButton"))
+            if (!raw.Contains("EndlessModeButton") || !raw.Contains("LeaderboardButton") || !raw.Contains("SfxVolumeRow"))
             {
                 Scene menuScene = EditorSceneManager.OpenScene(BuildSceneListSetup.MainMenuScenePath, OpenSceneMode.Additive);
                 if (menuScene.IsValid() && Build(menuScene))
                 {
                     EditorSceneManager.SaveScene(menuScene);
-                    Debug.Log("[MainMenuSceneBuilder] Upgraded mainmenuscene.unity in background with Endless & Leaderboard buttons.");
+                    Debug.Log("[MainMenuSceneBuilder] Upgraded mainmenuscene.unity in background with Music/SFX volume sliders.");
                 }
                 if (menuScene.IsValid())
                 {
@@ -630,31 +631,49 @@ namespace CookingSystem.EditorTools
         private static SettingsPopupRefs BuildSettingsPopup(Transform layer)
         {
             UIPopupPanel popup = CreatePopupRoot(layer, "SettingsPopup", out Button backdrop);
-            RectTransform window = CreateWindow(popup.transform, new Vector2(760f, 540f));
+            RectTransform window = CreateWindow(popup.transform, new Vector2(780f, 680f));
 
             CreateTitle(window, "Settings");
 
-            // Volume row: label | slider | value
-            RectTransform volumeRow = CreateRow(window, "VolumeRow", 70f, 20f);
-            CreateRowLabel(volumeRow, "VolumeLabel", "Volume", 190f);
-            Slider slider = CreateSlider(volumeRow, "VolumeSlider", 260f);
-            TMP_Text volumeValue = CreateRowLabel(volumeRow, "VolumeValue", "100%", 90f);
-            volumeValue.alignment = TextAlignmentOptions.Right;
+            // Master Volume row: label | slider | value
+            RectTransform masterRow = CreateRow(window, "VolumeRow", 62f, 20f);
+            CreateRowLabel(masterRow, "VolumeLabel", "Master", 200f);
+            Slider masterSlider = CreateSlider(masterRow, "VolumeSlider", 270f);
+            TMP_Text masterValue = CreateRowLabel(masterRow, "VolumeValue", "100%", 90f);
+            masterValue.alignment = TextAlignmentOptions.Right;
+
+            // Music Volume row: label | slider | value
+            RectTransform musicRow = CreateRow(window, "MusicVolumeRow", 62f, 20f);
+            CreateRowLabel(musicRow, "MusicVolumeLabel", "Music", 200f);
+            Slider musicSlider = CreateSlider(musicRow, "MusicVolumeSlider", 270f);
+            TMP_Text musicValue = CreateRowLabel(musicRow, "MusicVolumeValue", "75%", 90f);
+            musicValue.alignment = TextAlignmentOptions.Right;
+
+            // SFX Volume row: label | slider | value
+            RectTransform sfxRow = CreateRow(window, "SfxVolumeRow", 62f, 20f);
+            CreateRowLabel(sfxRow, "SfxVolumeLabel", "Sound Effects", 200f);
+            Slider sfxSlider = CreateSlider(sfxRow, "SfxVolumeSlider", 270f);
+            TMP_Text sfxValue = CreateRowLabel(sfxRow, "SfxVolumeValue", "90%", 90f);
+            sfxValue.alignment = TextAlignmentOptions.Right;
 
             // Fullscreen row: label | toggle
-            RectTransform fullscreenRow = CreateRow(window, "FullscreenRow", 70f, 20f);
-            CreateRowLabel(fullscreenRow, "FullscreenLabel", "Fullscreen", 394f);
+            RectTransform fullscreenRow = CreateRow(window, "FullscreenRow", 62f, 20f);
+            CreateRowLabel(fullscreenRow, "FullscreenLabel", "Fullscreen", 414f);
             Toggle fullscreenToggle = CreateToggle(fullscreenRow, "FullscreenToggle");
             AddLayoutSpacer(fullscreenRow, 90f); // Lines the toggle up with the slider's right end.
 
             Button done = CreateButton(window, "DoneButton", "Done", ButtonStyle.Primary);
 
-            ConfigurePopup(popup, window, slider, backdrop, done);
+            ConfigurePopup(popup, window, masterSlider, backdrop, done);
 
             SettingsPanel settingsPanel = popup.gameObject.AddComponent<SettingsPanel>();
             var so = new SerializedObject(settingsPanel);
-            SetRef(so, "masterVolumeSlider", slider);
-            SetRef(so, "masterVolumeLabel", volumeValue);
+            SetRef(so, "masterVolumeSlider", masterSlider);
+            SetRef(so, "masterVolumeLabel", masterValue);
+            SetRef(so, "musicVolumeSlider", musicSlider);
+            SetRef(so, "musicVolumeLabel", musicValue);
+            SetRef(so, "sfxVolumeSlider", sfxSlider);
+            SetRef(so, "sfxVolumeLabel", sfxValue);
             SetRef(so, "fullscreenToggle", fullscreenToggle);
             so.ApplyModifiedPropertiesWithoutUndo();
 

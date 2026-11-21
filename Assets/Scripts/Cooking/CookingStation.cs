@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using CookingSystem.Audio;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -72,6 +73,9 @@ namespace CookingSystem
         [Tooltip("Optional UI Image or Slider fill for cooking progress (0 to 1).")]
         [SerializeField] private Image progressBarFill;
 
+        [Tooltip("Highlight glow image activated when this burner matches prepped ingredients.")]
+        [SerializeField] private Image recommendationGlow;
+
         [Header("State Events")]
         [Tooltip("Fires when a valid ingredient is dropped into the station.")]
         public UnityEvent<DraggableIngredient> onIngredientAdded;
@@ -114,10 +118,36 @@ namespace CookingSystem
         public float CurrentBurnProgress => currentBurnProgress;
 
         // Runtime state
+        private static readonly List<CookingStation> ActiveStations = new List<CookingStation>();
         private CookingStationState currentState = CookingStationState.Idle;
         private readonly List<DraggableIngredient> currentIngredients = new List<DraggableIngredient>();
         private Coroutine cookingCoroutine;
         private Image stationImage;
+        private bool isRecommendedGlowActive;
+        private Color recommendationBaseColor = new Color(0.98f, 0.78f, 0.22f, 0.7f);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStationRegistry()
+        {
+            ActiveStations.Clear();
+        }
+
+        public static void HighlightRecommendedStations(CookwareType? recommendedCookware, bool isReadyForDrop)
+        {
+            Color glowColor = isReadyForDrop
+                ? new Color(0.29f, 0.87f, 0.50f, 0.85f)
+                : new Color(0.98f, 0.78f, 0.22f, 0.65f);
+
+            for (int i = 0; i < ActiveStations.Count; i++)
+            {
+                CookingStation s = ActiveStations[i];
+                if (s == null) continue;
+                bool match = recommendedCookware.HasValue &&
+                             s.currentState == CookingStationState.Idle &&
+                             s.cookwareType == recommendedCookware.Value;
+                s.SetRecommendationHighlight(match, glowColor);
+            }
+        }
 
         public string StationName => stationName;
         public CookingStationState CurrentState => currentState;
@@ -128,6 +158,11 @@ namespace CookingSystem
         private void Awake()
         {
             stationImage = GetComponent<Image>();
+
+            if (!ActiveStations.Contains(this))
+            {
+                ActiveStations.Add(this);
+            }
 
             // Ensure the station's Image raycastTarget is enabled so IDropHandler can trigger
             if (stationImage != null)
@@ -140,7 +175,35 @@ namespace CookingSystem
                 ingredientsContainer = transform;
             }
 
+            SetRecommendationHighlight(false, recommendationBaseColor);
             UpdateProgressUI(0f);
+        }
+
+        private void OnDestroy()
+        {
+            ActiveStations.Remove(this);
+        }
+
+        private void Update()
+        {
+            if (isRecommendedGlowActive && recommendationGlow != null)
+            {
+                float pulse = 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 5.2f);
+                Color c = recommendationBaseColor;
+                c.a = Mathf.Clamp01(recommendationBaseColor.a * pulse);
+                recommendationGlow.color = c;
+            }
+        }
+
+        public void SetRecommendationHighlight(bool active, Color glowColor)
+        {
+            isRecommendedGlowActive = active;
+            recommendationBaseColor = glowColor;
+            if (recommendationGlow != null)
+            {
+                recommendationGlow.enabled = active;
+                recommendationGlow.color = glowColor;
+            }
         }
 
         /// <summary>
@@ -216,6 +279,7 @@ namespace CookingSystem
 
             currentPayload = preparedDish.Payload;
             preparedDish.NotifyConsumed();
+            GameAudioManager.Instance?.PlayTapPickup();
             StartPreparedCooking();
             return true;
         }
@@ -245,8 +309,28 @@ namespace CookingSystem
                 burntFoodHandle.ShowReadyToTrash();
             }
 
+            RefreshFireAlertAudio();
+            GameAudioManager.Instance?.PlayClick(0.85f, 0.92f);
             onFireExtinguished?.Invoke();
             DishNotificationUI.Instance?.ShowNotification($"{stationName} fire out! Drag burnt food into the Trash Can.");
+        }
+
+        private static void RefreshFireAlertAudio()
+        {
+            bool anyOnFire = false;
+            for (int i = 0; i < ActiveStations.Count; i++)
+            {
+                if (ActiveStations[i] != null && ActiveStations[i].currentState == CookingStationState.OnFire)
+                {
+                    anyOnFire = true;
+                    break;
+                }
+            }
+
+            if (!anyOnFire)
+            {
+                GameAudioManager.Instance?.StopOvercookedAlert();
+            }
         }
 
         public void ClearBurntFood()
@@ -320,6 +404,7 @@ namespace CookingSystem
         private IEnumerator CookingRoutine()
         {
             currentState = CookingStationState.Cooking;
+            HighlightRecommendedStations(null, false);
             onCookingStarted?.Invoke();
 
             float targetCookDuration = EffectiveCookDuration;
@@ -336,6 +421,7 @@ namespace CookingSystem
             currentState = CookingStationState.Cooked;
             currentBurnProgress = 0f;
             UpdateProgressUI(1f);
+            GameAudioManager.Instance?.PlayCooked();
             onCookingCompleted?.Invoke();
 
             if (canBurn)
@@ -353,6 +439,7 @@ namespace CookingSystem
 
                 currentState = CookingStationState.OnFire;
                 if (fireOverlay != null) fireOverlay.SetActive(true);
+                GameAudioManager.Instance?.StartOvercookedAlert();
                 onStoveCaughtFire?.Invoke();
                 onFoodBurned?.Invoke();
                 CustomerManager.Instance?.ApplyFirePenalty(fireCustomerPatiencePenalty);
@@ -482,6 +569,7 @@ namespace CookingSystem
             currentState = CookingStationState.Idle;
             if (fireOverlay != null) fireOverlay.SetActive(false);
             if (burntFoodHandle != null) burntFoodHandle.gameObject.SetActive(false);
+            RefreshFireAlertAudio();
             UpdateProgressUI(0f);
             onStationReset?.Invoke();
         }

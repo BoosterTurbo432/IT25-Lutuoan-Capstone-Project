@@ -27,10 +27,18 @@ namespace CookingSystem
         private Vector2 originalAnchoredPosition;
         private Vector3 originalScale;
         private bool isTrashed;
+        private bool isDragging;
+        private bool isInitialized;
         private Coroutine snapBackCoroutine;
 
         private void Awake()
         {
+            EnsureInitialized();
+        }
+
+        private void EnsureInitialized()
+        {
+            if (isInitialized) return;
             rectTransform = GetComponent<RectTransform>();
             canvasGroup = GetComponent<CanvasGroup>();
             ownerStation = GetComponentInParent<CookingStation>();
@@ -38,8 +46,9 @@ namespace CookingSystem
             Canvas parentCanvas = GetComponentInParent<Canvas>();
             if (parentCanvas != null) rootCanvas = parentCanvas.rootCanvas;
 
-            originalScale = rectTransform.localScale;
+            originalScale = rectTransform.localScale == Vector3.zero ? Vector3.one : rectTransform.localScale;
             originalAnchoredPosition = rectTransform.anchoredPosition;
+            isInitialized = true;
         }
 
         public void SetOwnerStation(CookingStation station)
@@ -49,7 +58,9 @@ namespace CookingSystem
 
         public void ShowReadyToTrash()
         {
+            EnsureInitialized();
             isTrashed = false;
+            isDragging = false;
             if (canvasGroup != null)
             {
                 canvasGroup.blocksRaycasts = true;
@@ -60,7 +71,9 @@ namespace CookingSystem
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            EnsureInitialized();
             if (isTrashed) return;
+            if (LevelGameManager.Instance != null && !LevelGameManager.Instance.IsLevelActive) return;
 
             if (snapBackCoroutine != null)
             {
@@ -84,6 +97,7 @@ namespace CookingSystem
             }
             transform.SetAsLastSibling();
 
+            isDragging = true;
             canvasGroup.blocksRaycasts = false;
             canvasGroup.alpha = 0.8f;
             rectTransform.localScale = originalScale * 1.1f;
@@ -91,13 +105,16 @@ namespace CookingSystem
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (isTrashed) return;
+            if (!isDragging || isTrashed) return;
             float scaleFactor = rootCanvas != null ? rootCanvas.scaleFactor : 1f;
             rectTransform.anchoredPosition += eventData.delta / scaleFactor;
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (!isDragging) return;
+            isDragging = false;
+
             canvasGroup.blocksRaycasts = true;
             canvasGroup.alpha = 1f;
             rectTransform.localScale = originalScale;
@@ -110,6 +127,7 @@ namespace CookingSystem
         public void NotifyTrashed()
         {
             isTrashed = true;
+            isDragging = false;
             if (snapBackCoroutine != null)
             {
                 StopCoroutine(snapBackCoroutine);
