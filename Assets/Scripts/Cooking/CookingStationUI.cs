@@ -21,8 +21,15 @@ namespace CookingSystem
         [Tooltip("Optional button to clear/serve cooked food and reset station.")]
         [SerializeField] private Button serveButton;
 
-        [Tooltip("Optional burn grace warning fill image (0..1).")]
+        [Header("Animated Circular Progress Icon")]
+        [SerializeField] private GameObject progressIconRoot;
+        [SerializeField] private Image cookProgressRing;
         [SerializeField] private Image burnWarningFill;
+        [SerializeField] private TMP_Text progressCenterText;
+
+        [Header("Fire & Extinguisher Foam VFX")]
+        [SerializeField] private UISpriteSheetAnimator fireAnimator;
+        [SerializeField] private UISpriteSheetAnimator foamSprayAnimator;
 
         [Header("2D Vessel State Sprites")]
         [SerializeField] private Image vesselImage;
@@ -31,10 +38,16 @@ namespace CookingSystem
         [SerializeField] private Sprite burnedVesselSprite;
 
         private CookingStation station;
+        private RectTransform progressIconRect;
 
         private void Awake()
         {
             station = GetComponent<CookingStation>();
+            if (progressIconRoot != null)
+            {
+                progressIconRect = progressIconRoot.transform as RectTransform;
+                progressIconRoot.SetActive(false);
+            }
 
             if (cookButton != null)
             {
@@ -47,6 +60,11 @@ namespace CookingSystem
                 serveButton.onClick.AddListener(OnServeButtonClicked);
                 serveButton.gameObject.SetActive(false);
             }
+
+            if (foamSprayAnimator != null)
+            {
+                foamSprayAnimator.gameObject.SetActive(false);
+            }
         }
 
         private void Start()
@@ -58,6 +76,28 @@ namespace CookingSystem
 
             UpdateStatusText();
             SetVesselSprite(idleVesselSprite);
+            ResetProgressIconVisuals();
+        }
+
+        private void Update()
+        {
+            if (progressIconRect == null || progressIconRoot == null || !progressIconRoot.activeSelf) return;
+
+            if (station != null && station.CurrentState == CookingStationState.Cooked)
+            {
+                // Urgent gentle pulse while burn countdown ticks
+                float pulse = 1f + 0.08f * Mathf.Sin(Time.time * 10f);
+                progressIconRect.localScale = new Vector3(pulse, pulse, 1f);
+            }
+            else if (station != null && station.CurrentState == CookingStationState.Cooking)
+            {
+                float pulse = 1f + 0.03f * Mathf.Sin(Time.time * 5f);
+                progressIconRect.localScale = new Vector3(pulse, pulse, 1f);
+            }
+            else
+            {
+                progressIconRect.localScale = Vector3.one;
+            }
         }
 
         private void OnEnable()
@@ -98,25 +138,48 @@ namespace CookingSystem
 
         private void OnCookingStarted()
         {
+            if (progressIconRoot != null) progressIconRoot.SetActive(true);
+            if (cookProgressRing != null)
+            {
+                cookProgressRing.enabled = true;
+                cookProgressRing.fillAmount = 0f;
+            }
+            if (burnWarningFill != null)
+            {
+                burnWarningFill.fillAmount = 0f;
+                burnWarningFill.enabled = false;
+            }
+            if (progressCenterText != null)
+            {
+                progressCenterText.color = Color.white;
+                progressCenterText.text = "0%";
+            }
+
             if (statusText != null)
             {
-                statusText.text = "<color=#FFA500>Cooking in progress...</color>";
+                statusText.text = "<color=#FFA500>Cooking...</color>";
             }
-            if (cookButton != null)
-            {
-                cookButton.gameObject.SetActive(false);
-            }
-            if (serveButton != null)
-            {
-                serveButton.gameObject.SetActive(false);
-            }
+            if (cookButton != null) cookButton.gameObject.SetActive(false);
+            if (serveButton != null) serveButton.gameObject.SetActive(false);
         }
 
         private void OnCookingProgress(float progress)
         {
+            if (progressIconRoot != null && !progressIconRoot.activeSelf) progressIconRoot.SetActive(true);
+            if (cookProgressRing != null)
+            {
+                cookProgressRing.enabled = true;
+                cookProgressRing.fillAmount = Mathf.Clamp01(progress);
+            }
+            if (progressCenterText != null)
+            {
+                progressCenterText.color = Color.white;
+                progressCenterText.text = $"{Mathf.RoundToInt(progress * 100f)}%";
+            }
+
             if (statusText != null)
             {
-                statusText.text = $"<color=#FFA500>Cooking: {(progress * 100f):F0}%</color>";
+                statusText.text = $"<color=#FFA500>Cooking {(progress * 100f):F0}%</color>";
             }
             if (progress >= 0.35f)
             {
@@ -127,40 +190,77 @@ namespace CookingSystem
         private void OnCookingCompleted()
         {
             SetVesselSprite(cookingVesselSprite);
+            if (progressIconRoot != null) progressIconRoot.SetActive(true);
+            if (cookProgressRing != null)
+            {
+                cookProgressRing.enabled = true;
+                cookProgressRing.fillAmount = 1f;
+            }
+            if (burnWarningFill != null)
+            {
+                burnWarningFill.enabled = true;
+                burnWarningFill.fillAmount = 0f;
+            }
+            if (progressCenterText != null)
+            {
+                progressCenterText.color = new Color(0.30f, 0.96f, 0.56f, 1f);
+                progressCenterText.text = $"{station.EffectiveBurnDuration:0.0}s";
+            }
+
             if (statusText != null)
             {
                 string graceLabel = station.EffectiveBurnDuration.ToString("0.#");
                 statusText.text = station.RequirePrepStation
-                    ? $"<color=#00FF7F>Ready! Click Plate! ({graceLabel}s)</color>"
-                    : "<color=#00FF7F>Dish Ready! Click Serve</color>";
+                    ? $"<color=#00FF7F>Ready! Plate ({graceLabel}s)</color>"
+                    : "<color=#00FF7F>Dish Ready! Serve</color>";
             }
-            if (cookButton != null)
-            {
-                cookButton.gameObject.SetActive(false);
-            }
-            if (serveButton != null)
-            {
-                serveButton.gameObject.SetActive(true);
-            }
+            if (cookButton != null) cookButton.gameObject.SetActive(false);
+            if (serveButton != null) serveButton.gameObject.SetActive(true);
         }
 
         private void OnBurnWarningProgress(float progress)
         {
             if (burnWarningFill != null)
             {
-                burnWarningFill.fillAmount = progress;
+                burnWarningFill.enabled = true;
+                burnWarningFill.fillAmount = Mathf.Clamp01(progress);
             }
-            if (statusText != null && station.CurrentState == CookingStationState.Cooked)
+            if (station.CurrentState == CookingStationState.Cooked)
             {
-                float secondsLeft = Mathf.Max(0f, station.BurnDuration * (1f - progress));
-                statusText.text = $"<color=#F59E0B>Plate Now! ({secondsLeft:F1}s)</color>";
+                float secondsLeft = Mathf.Max(0f, station.EffectiveBurnDuration * (1f - progress));
+                if (progressCenterText != null)
+                {
+                    progressCenterText.color = progress > 0.6f
+                        ? new Color(1f, 0.38f, 0.38f, 1f)
+                        : new Color(0.99f, 0.85f, 0.25f, 1f);
+                    progressCenterText.text = $"{secondsLeft:F1}s";
+                }
+                if (statusText != null)
+                {
+                    statusText.text = $"<color=#F59E0B>Plate Now! ({secondsLeft:F1}s)</color>";
+                }
             }
         }
 
         private void OnStoveCaughtFire()
         {
             SetVesselSprite(burnedVesselSprite);
-            if (burnWarningFill != null) burnWarningFill.fillAmount = 1f;
+            if (progressIconRoot != null) progressIconRoot.SetActive(true);
+            if (burnWarningFill != null)
+            {
+                burnWarningFill.enabled = true;
+                burnWarningFill.fillAmount = 1f;
+            }
+            if (progressCenterText != null)
+            {
+                progressCenterText.color = new Color(1f, 0.35f, 0.35f, 1f);
+                progressCenterText.text = "!";
+            }
+            if (fireAnimator != null)
+            {
+                fireAnimator.PlayLoop(10f);
+            }
+
             if (cookButton != null) cookButton.gameObject.SetActive(false);
             if (serveButton != null) serveButton.gameObject.SetActive(false);
             if (statusText != null)
@@ -171,6 +271,16 @@ namespace CookingSystem
 
         private void OnFireExtinguished()
         {
+            if (fireAnimator != null)
+            {
+                fireAnimator.StopAndHide();
+            }
+            if (foamSprayAnimator != null)
+            {
+                foamSprayAnimator.PlayOneShot(durationSeconds: 0.68f, fadeOutTail: true, hideWhenDone: true, startScale: 0.78f, endScale: 1.16f);
+            }
+
+            ResetProgressIconVisuals();
             if (serveButton != null) serveButton.gameObject.SetActive(false);
             if (statusText != null)
             {
@@ -188,28 +298,33 @@ namespace CookingSystem
             }
             if (statusText != null)
             {
-                statusText.text = "<color=#FF4500>Burned! Click Serve to Clean</color>";
+                statusText.text = "<color=#FF4500>Burned! Clean Stove</color>";
             }
-            if (cookButton != null)
-            {
-                cookButton.gameObject.SetActive(false);
-            }
-            if (serveButton != null)
-            {
-                serveButton.gameObject.SetActive(true);
-            }
+            if (cookButton != null) cookButton.gameObject.SetActive(false);
+            if (serveButton != null) serveButton.gameObject.SetActive(true);
         }
 
         private void OnStationReset()
         {
             SetVesselSprite(idleVesselSprite);
-            if (burnWarningFill != null) burnWarningFill.fillAmount = 0f;
+            if (fireAnimator != null) fireAnimator.StopAndHide();
+            ResetProgressIconVisuals();
             UpdateStatusText();
             UpdateCookButtonVisibility();
-            if (serveButton != null)
+            if (serveButton != null) serveButton.gameObject.SetActive(false);
+        }
+
+        private void ResetProgressIconVisuals()
+        {
+            if (cookProgressRing != null) cookProgressRing.fillAmount = 0f;
+            if (burnWarningFill != null)
             {
-                serveButton.gameObject.SetActive(false);
+                burnWarningFill.fillAmount = 0f;
+                burnWarningFill.enabled = false;
             }
+            if (progressCenterText != null) progressCenterText.text = string.Empty;
+            if (progressIconRect != null) progressIconRect.localScale = Vector3.one;
+            if (progressIconRoot != null) progressIconRoot.SetActive(false);
         }
 
         private void OnCookButtonClicked()
@@ -240,7 +355,7 @@ namespace CookingSystem
             {
                 statusText.text = station.RequirePrepStation
                     ? $"Drop {station.Cookware} Here"
-                    : $"Ingredients: {station.IngredientCount} (Drop to Cook)";
+                    : $"Ingredients: {station.IngredientCount}";
             }
         }
 

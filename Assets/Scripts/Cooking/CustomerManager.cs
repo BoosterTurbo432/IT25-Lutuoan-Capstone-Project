@@ -115,6 +115,13 @@ namespace CookingSystem
             spawnTimer = initialSpawnDelay;
         }
 
+        public void RefreshEndlessHospitalityBonus(int rushTier)
+        {
+            hospitalityPatienceMult = ProgressionConfig.GetCustomerPatienceMultiplier(SaveSystem.Current);
+            float baseSeconds = ProgressionConfig.GetEndlessBasePatience(rushTier);
+            basePatienceSeconds = baseSeconds * hospitalityPatienceMult;
+        }
+
         public void UpdateEndlessDifficulty(int rushTier)
         {
             spawnInterval = ProgressionConfig.GetEndlessSpawnInterval(rushTier);

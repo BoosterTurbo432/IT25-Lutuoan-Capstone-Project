@@ -35,6 +35,8 @@ namespace CookingSystem.EditorTools
             anyCreated |= EnsurePng("UI_PatienceFillPill.png", 28, 340, GeneratePatienceFillPill);
             anyCreated |= EnsurePng("UI_StarFilled.png", 128, 128, GenerateStarFilled);
             anyCreated |= EnsurePng("UI_StarEmpty.png", 128, 128, GenerateStarEmpty);
+            anyCreated |= EnsurePng("UI_TutorialHandCursor.png", 128, 128, GenerateTutorialHandCursor);
+            anyCreated |= EnsurePng("UI_TutorialTapRing.png", 128, 128, GenerateTutorialTapRing);
             anyCreated |= EnsurePng("UI_BtnRestart.png", 160, 68, GenerateRestartBtn);
             anyCreated |= EnsurePng("UI_BtnMenu.png", 160, 68, GenerateMenuBtn);
 
@@ -491,6 +493,117 @@ namespace CookingSystem.EditorTools
         private static Texture2D GenerateStarEmpty(int w, int h)
         {
             return GenerateStarTexture(w, h, new Color(0.24f, 0.16f, 0.12f, 0.85f), new Color(0.30f, 0.21f, 0.16f, 0.85f), Hex("140C08"));
+        }
+
+        /// <summary>
+        /// Generates a crisp Diner-Dash-style cartoon gloved pointing hand cursor (128x128)
+        /// with thick dark outline, index finger pointing upward-left, and soft drop shadow.
+        /// </summary>
+        private static Texture2D GenerateTutorialHandCursor(int w, int h)
+        {
+            Color gloveFill = Hex("FFFDF7");
+            Color gloveShade = Hex("FDE6C4");
+            Color cuffFill = Hex("F59E0B");
+            Color outline = Hex("2B1508");
+
+            return BuildTexture(w, h, (x, y) =>
+            {
+                // Rotate coordinates slightly (-16 deg) so hand points naturally toward top-left fingertip
+                float cx = x - w * 0.50f;
+                float cy = y - h * 0.46f;
+                float rad = -16f * Mathf.Deg2Rad;
+                float cos = Mathf.Cos(rad);
+                float sin = Mathf.Sin(rad);
+                float rx = cx * cos - cy * sin;
+                float ry = cx * sin + cy * cos;
+
+                float d = HandSdf(rx, ry);
+                float cuffD = RoundedRectSdf(rx - 2f, ry + 36f, 20f, 10f, 6f);
+                float combined = Mathf.Min(d, cuffD);
+
+                if (combined > 6f)
+                {
+                    // Soft offset drop shadow for crisp contrast over both light and dark UI
+                    float sd = Mathf.Min(HandSdf(rx - 4f, ry + 5f), RoundedRectSdf(rx - 6f, ry + 41f, 20f, 10f, 6f));
+                    if (sd < 4f)
+                    {
+                        float alpha = Mathf.Clamp01(1f - Mathf.Max(0f, sd) / 4f) * 0.36f;
+                        return new Color(0.08f, 0.04f, 0.02f, alpha);
+                    }
+                    return new Color(0f, 0f, 0f, 0f);
+                }
+
+                if (combined > 0f)
+                {
+                    float a = Mathf.Clamp01(1f - combined / 3.2f);
+                    return new Color(outline.r, outline.g, outline.b, a);
+                }
+
+                if (combined > -4.2f)
+                {
+                    return outline;
+                }
+
+                if (cuffD < d + 1.5f && ry < -26f)
+                {
+                    return cuffD > -7.5f ? Shift(cuffFill, -0.08f) : cuffFill;
+                }
+
+                // Subtle finger crease lines on palm
+                float shadeT = Mathf.Clamp01((rx + 28f) / 62f) * 0.65f + Mathf.Clamp01((-ry + 18f) / 60f) * 0.35f;
+                return Color.Lerp(gloveFill, gloveShade, shadeT);
+            });
+        }
+
+        private static float HandSdf(float x, float y)
+        {
+            // Pointing index finger (tall rounded capsule near left side)
+            float indexFinger = CapsuleSdf(x, y, new Vector2(-11f, 6f), new Vector2(-11f, 44f), 9.5f);
+            // Curled middle, ring, pinky knuckles on the right
+            float midFinger = CapsuleSdf(x, y, new Vector2(4f, 4f), new Vector2(4f, 18f), 8.2f);
+            float ringFinger = CapsuleSdf(x, y, new Vector2(16f, 0f), new Vector2(16f, 12f), 7.6f);
+            float pinkyFinger = CapsuleSdf(x, y, new Vector2(26f, -5f), new Vector2(26f, 5f), 6.8f);
+            // Thumb tucked out to the left
+            float thumb = CapsuleSdf(x, y, new Vector2(-16f, -12f), new Vector2(-28f, 2f), 8.2f);
+            // Main rounded palm
+            float palm = RoundedRectSdf(x - 3f, y + 10f, 25f, 22f, 14f);
+
+            float d = Mathf.Min(indexFinger, palm);
+            d = Mathf.Min(d, midFinger);
+            d = Mathf.Min(d, ringFinger);
+            d = Mathf.Min(d, pinkyFinger);
+            d = Mathf.Min(d, thumb);
+            return d;
+        }
+
+        private static float CapsuleSdf(float px, float py, Vector2 a, Vector2 b, float r)
+        {
+            Vector2 pa = new Vector2(px - a.x, py - a.y);
+            Vector2 ba = b - a;
+            float h = Mathf.Clamp01(Vector2.Dot(pa, ba) / Mathf.Max(0.0001f, Vector2.Dot(ba, ba)));
+            return (pa - ba * h).magnitude - r;
+        }
+
+        /// <summary>
+        /// Crisp golden expanding tap ripple ring (128x128) paired with the guideline hand cursor.
+        /// </summary>
+        private static Texture2D GenerateTutorialTapRing(int w, int h)
+        {
+            Color ringGold = Hex("FDE047");
+            Color ringCore = Hex("FFFFFF");
+            return BuildTexture(w, h, (x, y) =>
+            {
+                float dx = x - w * 0.5f;
+                float dy = y - h * 0.5f;
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                float band = Mathf.Abs(dist - w * 0.36f);
+                if (band > 9f) return new Color(0f, 0f, 0f, 0f);
+
+                float alpha = Mathf.Clamp01(1f - band / 9f);
+                Color c = Color.Lerp(ringGold, ringCore, Mathf.Clamp01(1f - band / 4f));
+                c.a = alpha * alpha;
+                return c;
+            });
         }
 
         private static Texture2D GenerateStarTexture(int w, int h, Color fill, Color highlight, Color borderColor)

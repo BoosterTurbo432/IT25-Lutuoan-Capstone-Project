@@ -247,15 +247,22 @@ namespace CookingSystem
 
             if (tutorialCardRect != null)
             {
-                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1420f, 720f));
-                Transform gridRt = tutorialStepsGrid != null ? tutorialStepsGrid.transform : null;
-                SetBox(gridRt, new Vector2(0f, -14f), new Vector2(1340f, 412f));
-                if (tutorialStepsGrid != null)
+                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1460f, 820f));
+                Transform cookGrid = tutorialCardRect.Find("InnerPanel/HowToCookSection/CookStepsGrid");
+                if (cookGrid != null && cookGrid.TryGetComponent<GridLayoutGroup>(out var cglg))
                 {
-                    tutorialStepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-                    tutorialStepsGrid.constraintCount = 4;
-                    tutorialStepsGrid.cellSize = new Vector2(318f, 404f);
-                    tutorialStepsGrid.spacing = new Vector2(18f, 18f);
+                    cglg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                    cglg.constraintCount = 4;
+                    cglg.cellSize = new Vector2(326f, 246f);
+                    cglg.spacing = new Vector2(14f, 12f);
+                }
+                Transform custGrid = tutorialCardRect.Find("InnerPanel/HowCustomersSection/CustomerCardsGrid");
+                if (custGrid != null && custGrid.TryGetComponent<GridLayoutGroup>(out var ulg))
+                {
+                    ulg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                    ulg.constraintCount = 3;
+                    ulg.cellSize = new Vector2(440f, 246f);
+                    ulg.spacing = new Vector2(16f, 12f);
                 }
             }
         }
@@ -397,15 +404,22 @@ namespace CookingSystem
 
             if (tutorialCardRect != null)
             {
-                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1010f, 1260f));
-                Transform gridRt = tutorialStepsGrid != null ? tutorialStepsGrid.transform : null;
-                SetBox(gridRt, new Vector2(0f, -14f), new Vector2(940f, 750f));
-                if (tutorialStepsGrid != null)
+                SetBox(tutorialCardRect, Vector2.zero, new Vector2(1010f, 1520f));
+                Transform cookGrid = tutorialCardRect.Find("InnerPanel/HowToCookSection/CookStepsGrid");
+                if (cookGrid != null && cookGrid.TryGetComponent<GridLayoutGroup>(out var cglg))
                 {
-                    tutorialStepsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-                    tutorialStepsGrid.constraintCount = 2;
-                    tutorialStepsGrid.cellSize = new Vector2(452f, 364f);
-                    tutorialStepsGrid.spacing = new Vector2(22f, 20f);
+                    cglg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                    cglg.constraintCount = 2;
+                    cglg.cellSize = new Vector2(452f, 246f);
+                    cglg.spacing = new Vector2(14f, 14f);
+                }
+                Transform custGrid = tutorialCardRect.Find("InnerPanel/HowCustomersSection/CustomerCardsGrid");
+                if (custGrid != null && custGrid.TryGetComponent<GridLayoutGroup>(out var ulg))
+                {
+                    ulg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                    ulg.constraintCount = 1;
+                    ulg.cellSize = new Vector2(920f, 162f);
+                    ulg.spacing = new Vector2(12f, 12f);
                 }
             }
         }
@@ -423,16 +437,18 @@ namespace CookingSystem
 
                 if (portrait)
                 {
-                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-94f, 14f), new Vector2(120f, 196f));
-                    SetBox(slot.Find("NameplatePill"), new Vector2(-94f, -104f), new Vector2(126f, 32f));
+                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-94f, -6f), new Vector2(128f, 224f));
+                    SetBox(slot.Find("SatisfactionEmojiBadge"), new Vector2(-42f, 78f), new Vector2(60f, 60f));
+                    SetBox(slot.Find("NameplatePill"), new Vector2(-94f, -110f), new Vector2(128f, 32f));
                     SetBox(slot.Find("OrderBubble"), new Vector2(66f, 8f), new Vector2(186f, 236f));
                     SetBox(slot.Find("PatienceTimerPill"), new Vector2(66f, -118f), new Vector2(184f, 24f));
                     SetBox(slot.Find("FeedbackText"), new Vector2(0f, 114f), new Vector2(316f, 28f));
                 }
                 else
                 {
-                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-146f, 14f), new Vector2(170f, 206f));
-                    SetBox(slot.Find("NameplatePill"), new Vector2(-146f, -106f), new Vector2(180f, 34f));
+                    SetBox(slot.Find("CustomerVisualRoot"), new Vector2(-146f, -6f), new Vector2(196f, 240f));
+                    SetBox(slot.Find("SatisfactionEmojiBadge"), new Vector2(-62f, 84f), new Vector2(74f, 74f));
+                    SetBox(slot.Find("NameplatePill"), new Vector2(-146f, -114f), new Vector2(182f, 34f));
                     SetBox(slot.Find("OrderBubble"), new Vector2(96f, 8f), new Vector2(248f, 254f));
                     SetBox(slot.Find("PatienceTimerPill"), new Vector2(96f, -122f), new Vector2(246f, 26f));
                     SetBox(slot.Find("FeedbackText"), new Vector2(0f, 116f), new Vector2(460f, 28f));

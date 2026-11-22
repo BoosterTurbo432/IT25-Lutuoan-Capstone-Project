@@ -86,6 +86,14 @@ namespace CookingSystem
         [SerializeField] private Button viewLeaderboardButton;
         [SerializeField] private LeaderboardPanelController endlessLeaderboardPanel;
 
+        [Header("Endless Mode Roguelike Draft Modal")]
+        [SerializeField] private GameObject endlessDraftModalRoot;
+        [SerializeField] private TMP_Text endlessDraftTitleText;
+        [SerializeField] private TMP_Text endlessDraftSubtitleText;
+        [SerializeField] private Button[] endlessDraftCardButtons;
+        [SerializeField] private TMP_Text[] endlessDraftCardStackTexts;
+        [SerializeField] private TMP_Text[] endlessDraftCardStatsTexts;
+
         private GameMode activeMode = GameMode.CampaignDay;
         private int activeDay = 1;
         private DayShiftConfig activeDayConfig;
@@ -95,11 +103,13 @@ namespace CookingSystem
         private bool isLevelActive;
         private bool isHelpPaused;
         private bool isPauseMenuOpen;
+        private bool isEndlessDraftOpen;
         private bool hasShiftEnded;
         private bool hasSubmittedLeaderboardScore;
 
         private int livesRemaining = ProgressionConfig.EndlessMaxLives;
         private int currentEndlessTier;
+        private int nextEndlessDraftQuota = ProgressionConfig.EndlessDraftQuotaStep;
 
         private int totalScore;
         private int baseDishPointsTotal;
@@ -121,7 +131,9 @@ namespace CookingSystem
         public GameMode ActiveMode => activeMode;
         public int ActiveDay => activeDay;
         public bool IsEndlessMode => activeMode == GameMode.Endless;
-        public bool IsHelpOrPauseOpen => isHelpPaused || isPauseMenuOpen;
+        public bool IsEndlessDraftOpen => isEndlessDraftOpen;
+        public int NextEndlessDraftQuota => nextEndlessDraftQuota;
+        public bool IsHelpOrPauseOpen => isHelpPaused || isPauseMenuOpen || isEndlessDraftOpen;
         public bool IsTimerPausedForTutorial => guidedTutorial != null && guidedTutorial.IsRunning;
         public bool IsLevelActive => isLevelActive && !hasShiftEnded && !IsHelpOrPauseOpen;
         public float RemainingTime => remainingTime;
@@ -146,6 +158,7 @@ namespace CookingSystem
             if (summaryModalRoot != null) summaryModalRoot.SetActive(false);
             if (helpModalRoot != null) helpModalRoot.SetActive(false);
             if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
+            if (endlessDraftModalRoot != null) endlessDraftModalRoot.SetActive(false);
             if (leaderboardSubmitGroup != null) leaderboardSubmitGroup.SetActive(false);
             if (endlessLeaderboardPanel != null) endlessLeaderboardPanel.CloseOverlay();
 
@@ -163,6 +176,19 @@ namespace CookingSystem
             if (mobileNamePromptButton != null) mobileNamePromptButton.onClick.AddListener(PromptMobileNameInput);
             if (viewLeaderboardButton != null) viewLeaderboardButton.onClick.AddListener(OpenEndlessLeaderboard);
 
+            if (endlessDraftCardButtons != null)
+            {
+                for (int i = 0; i < endlessDraftCardButtons.Length; i++)
+                {
+                    Button draftBtn = endlessDraftCardButtons[i];
+                    if (draftBtn != null)
+                    {
+                        KitchenUpgradeId capturedId = (KitchenUpgradeId)i;
+                        draftBtn.onClick.AddListener(() => SelectEndlessDraftUpgrade(capturedId));
+                    }
+                }
+            }
+
             if (leaderboardNameInput != null)
             {
                 leaderboardNameInput.characterLimit = LeaderboardSystem.MaxNameLength;
@@ -179,6 +205,7 @@ namespace CookingSystem
         private void OnDestroy()
         {
             Time.timeScale = 1f;
+            ProgressionConfig.EndEndlessRun();
             if (guidedTutorial != null)
             {
                 guidedTutorial.onTutorialCompleted -= HandleGuidedTutorialCompleted;
@@ -188,19 +215,21 @@ namespace CookingSystem
         private void InitializeSessionConfig()
         {
             SaveData save = SaveSystem.GetOrCreateCurrent();
-            scoreMultiplier = ProgressionConfig.GetScoreMultiplier(save);
             activeMode = GameLaunchOptions.SelectedMode;
 
             if (activeMode == GameMode.Endless)
             {
+                ProgressionConfig.BeginEndlessRun();
                 activeDay = ProgressionConfig.TotalCampaignDays;
                 livesRemaining = ProgressionConfig.EndlessMaxLives;
                 elapsedEndlessSeconds = 0f;
                 currentEndlessTier = 0;
                 shiftCustomerQuota = 0;
+                nextEndlessDraftQuota = ProgressionConfig.EndlessDraftQuotaStep;
             }
             else
             {
+                ProgressionConfig.EndEndlessRun();
                 int resolvedDay = GameLaunchOptions.SelectedDay > 0
                     ? GameLaunchOptions.SelectedDay
                     : save.currentDay;
@@ -210,6 +239,8 @@ namespace CookingSystem
                 shiftCustomerQuota = activeDayConfig.customerQuota;
                 remainingTime = levelDurationSeconds;
             }
+
+            scoreMultiplier = ProgressionConfig.GetScoreMultiplier(save);
         }
 
         private void Start()
@@ -243,7 +274,7 @@ namespace CookingSystem
 
         private void Update()
         {
-            if (WasEscapePressedThisFrame() && !hasShiftEnded)
+            if (WasEscapePressedThisFrame() && !hasShiftEnded && !isEndlessDraftOpen)
             {
                 if (isHelpPaused) CloseHelpModal();
                 else if (isPauseMenuOpen) ClosePauseMenu();
@@ -284,7 +315,7 @@ namespace CookingSystem
 
         public void OpenHelpModal()
         {
-            if (hasShiftEnded) return;
+            if (hasShiftEnded || isEndlessDraftOpen) return;
             if (isPauseMenuOpen)
             {
                 isPauseMenuOpen = false;
@@ -305,7 +336,7 @@ namespace CookingSystem
 
         public void OpenPauseMenu()
         {
-            if (hasShiftEnded) return;
+            if (hasShiftEnded || isEndlessDraftOpen) return;
             if (isHelpPaused)
             {
                 isHelpPaused = false;
@@ -316,7 +347,7 @@ namespace CookingSystem
             if (pauseShiftSubtitleText != null)
             {
                 pauseShiftSubtitleText.text = activeMode == GameMode.Endless
-                    ? $"Endless Rush  |  Rush Lv {currentEndlessTier + 1}  |  Lives: {livesRemaining}/3"
+                    ? $"Endless Rush  |  Kitchen Rank {ProgressionConfig.EndlessKitchenRank}/{ProgressionConfig.EndlessMaxKitchenRank}  |  Lives: {livesRemaining}/3"
                     : $"Day {activeDay}/3: {activeDayConfig.shiftTitle}  |  Orders: {customersCompletedCount}/{shiftCustomerQuota}";
             }
             if (pauseModalRoot != null) pauseModalRoot.SetActive(true);
@@ -330,9 +361,105 @@ namespace CookingSystem
             SyncTimeScale();
         }
 
+        public void OpenEndlessDraftModal()
+        {
+            if (hasShiftEnded || activeMode != GameMode.Endless || !ProgressionConfig.CanDraftEndlessUpgrade) return;
+
+            if (isHelpPaused)
+            {
+                isHelpPaused = false;
+                if (helpModalRoot != null) helpModalRoot.SetActive(false);
+            }
+            if (isPauseMenuOpen)
+            {
+                isPauseMenuOpen = false;
+                if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
+            }
+
+            isEndlessDraftOpen = true;
+            SyncTimeScale();
+            GameAudioManager.Instance?.PlayComboStreak();
+
+            int currentRank = ProgressionConfig.EndlessKitchenRank;
+            int nextRank = currentRank + 1;
+
+            if (endlessDraftTitleText != null)
+            {
+                endlessDraftTitleText.text = $"Kitchen Rank Up! (Rank {currentRank} -> {nextRank}/{ProgressionConfig.EndlessMaxKitchenRank})";
+            }
+            if (endlessDraftSubtitleText != null)
+            {
+                endlessDraftSubtitleText.text = $"Quota Milestone Reached ({customersCompletedCount} Customers Served)! Pick 1 Upgrade to Continue:";
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                KitchenUpgradeId id = (KitchenUpgradeId)i;
+                int stacks = ProgressionConfig.GetEndlessUpgradeStacks(id);
+
+                if (endlessDraftCardStackTexts != null && i < endlessDraftCardStackTexts.Length && endlessDraftCardStackTexts[i] != null)
+                {
+                    endlessDraftCardStackTexts[i].text = $"Current Lv {stacks} -> <color=#4ADE80>Lv {stacks + 1}</color>";
+                }
+                if (endlessDraftCardStatsTexts != null && i < endlessDraftCardStatsTexts.Length && endlessDraftCardStatsTexts[i] != null)
+                {
+                    endlessDraftCardStatsTexts[i].text = ProgressionConfig.BuildEndlessDraftPreview(id);
+                }
+                if (endlessDraftCardButtons != null && i < endlessDraftCardButtons.Length && endlessDraftCardButtons[i] != null)
+                {
+                    endlessDraftCardButtons[i].interactable = true;
+                }
+            }
+
+            if (endlessDraftModalRoot != null)
+            {
+                endlessDraftModalRoot.SetActive(true);
+            }
+        }
+
+        public void SelectEndlessDraftUpgrade(KitchenUpgradeId id)
+        {
+            if (!isEndlessDraftOpen || activeMode != GameMode.Endless) return;
+
+            if (!ProgressionConfig.ApplyEndlessDraftUpgrade(id))
+            {
+                CloseEndlessDraftModal();
+                return;
+            }
+
+            nextEndlessDraftQuota += ProgressionConfig.EndlessDraftQuotaStep;
+
+            // Hot-apply new roguelike stats across all active kitchen systems immediately
+            scoreMultiplier = ProgressionConfig.GetScoreMultiplier(SaveSystem.Current);
+            PrepStation prep = FindAnyObjectByType<PrepStation>();
+            if (prep != null)
+            {
+                prep.ApplyUpgradeBonuses();
+            }
+            CustomerManager.Instance?.RefreshEndlessHospitalityBonus(currentEndlessTier);
+
+            GameAudioManager.Instance?.PlaySatisfied();
+
+            int newRank = ProgressionConfig.EndlessKitchenRank;
+            string rankTag = newRank >= ProgressionConfig.EndlessMaxKitchenRank
+                ? $"Kitchen Rank {newRank}/{ProgressionConfig.EndlessMaxKitchenRank} (MAX!)"
+                : $"Kitchen Rank {newRank}/{ProgressionConfig.EndlessMaxKitchenRank}";
+            DishNotificationUI.Instance?.ShowNotification($"{rankTag} — Drafted {ProgressionConfig.GetUpgradeDisplayName(id)}!");
+
+            CloseEndlessDraftModal();
+            RefreshHud();
+        }
+
+        private void CloseEndlessDraftModal()
+        {
+            isEndlessDraftOpen = false;
+            if (endlessDraftModalRoot != null) endlessDraftModalRoot.SetActive(false);
+            SyncTimeScale();
+        }
+
         private void SyncTimeScale()
         {
-            Time.timeScale = (isHelpPaused || isPauseMenuOpen) ? 0f : 1f;
+            Time.timeScale = (isHelpPaused || isPauseMenuOpen || isEndlessDraftOpen) ? 0f : 1f;
         }
 
         private void ShowShiftStartBanner()
@@ -463,7 +590,13 @@ namespace CookingSystem
                     DishNotificationUI.Instance?.ShowNotification(
                         $"Rush Level {currentEndlessTier + 1}! Customers Arrive Faster & Less Patience!");
                 }
+
                 RefreshHud();
+
+                if (ProgressionConfig.CanDraftEndlessUpgrade && customersCompletedCount >= nextEndlessDraftQuota)
+                {
+                    OpenEndlessDraftModal();
+                }
                 return;
             }
 
@@ -512,10 +645,12 @@ namespace CookingSystem
             isLevelActive = false;
             isHelpPaused = false;
             isPauseMenuOpen = false;
+            isEndlessDraftOpen = false;
             Time.timeScale = 1f;
 
             if (helpModalRoot != null) helpModalRoot.SetActive(false);
             if (pauseModalRoot != null) pauseModalRoot.SetActive(false);
+            if (endlessDraftModalRoot != null) endlessDraftModalRoot.SetActive(false);
 
             int timeBonus = activeMode == GameMode.CampaignDay
                 ? Mathf.RoundToInt(Mathf.Max(0f, remainingTime) * pointsPerRemainingSecond)
@@ -778,6 +913,7 @@ namespace CookingSystem
         public void GoToUpgradeShop()
         {
             Time.timeScale = 1f;
+            ProgressionConfig.EndEndlessRun();
             GameLaunchOptions.LoadFromSave = true;
             LoadingBridge.LoadScene(UpgradeShopSceneName, loadFromSave: true);
         }
@@ -793,6 +929,7 @@ namespace CookingSystem
         public void GoToMainMenu()
         {
             Time.timeScale = 1f;
+            ProgressionConfig.EndEndlessRun();
             SceneManager.LoadScene("mainmenuscene");
         }
 
@@ -800,9 +937,17 @@ namespace CookingSystem
         {
             if (dayModeBadgeText != null)
             {
-                dayModeBadgeText.text = activeMode == GameMode.Endless
-                    ? $"Endless Lv {currentEndlessTier + 1}"
-                    : $"Day {activeDay}/{ProgressionConfig.TotalCampaignDays}";
+                if (activeMode == GameMode.Endless)
+                {
+                    int kr = ProgressionConfig.EndlessKitchenRank;
+                    dayModeBadgeText.text = kr >= ProgressionConfig.EndlessMaxKitchenRank
+                        ? $"Rank {kr}/{ProgressionConfig.EndlessMaxKitchenRank} MAX"
+                        : $"Kitchen Rank {kr}/{ProgressionConfig.EndlessMaxKitchenRank}";
+                }
+                else
+                {
+                    dayModeBadgeText.text = $"Day {activeDay}/{ProgressionConfig.TotalCampaignDays}";
+                }
             }
 
             if (timerText != null)
@@ -862,9 +1007,16 @@ namespace CookingSystem
 
             if (comboText != null)
             {
-                comboText.text = activeMode == GameMode.Endless
-                    ? $"Served: {customersCompletedCount} | x{Mathf.Max(1, currentStreak)}"
-                    : (currentStreak > 1 ? $"Streak x{currentStreak}" : "Streak x1");
+                if (activeMode == GameMode.Endless)
+                {
+                    comboText.text = ProgressionConfig.CanDraftEndlessUpgrade
+                        ? $"Quota: {customersCompletedCount}/{nextEndlessDraftQuota} | x{Mathf.Max(1, currentStreak)}"
+                        : $"Served: {customersCompletedCount} | MAX Rank";
+                }
+                else
+                {
+                    comboText.text = currentStreak > 1 ? $"Streak x{currentStreak}" : "Streak x1";
+                }
             }
         }
 

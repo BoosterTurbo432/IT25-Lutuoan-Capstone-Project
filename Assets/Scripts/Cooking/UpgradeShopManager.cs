@@ -11,11 +11,10 @@ namespace CookingSystem
     public class UpgradeCardRefs
     {
         public KitchenUpgradeId upgradeId;
-        public TMP_Text rankText;
+        public TMP_Text statusBadgeText;
         public TMP_Text statsText;
         public Button upgradeButton;
         public TMP_Text upgradeButtonLabel;
-        public Image[] rankPips;
     }
 
     [Serializable]
@@ -27,9 +26,9 @@ namespace CookingSystem
     }
 
     /// <summary>
-    /// Drives UpgradeShopScene: lets players spend awarded Skill Points on 3 active kitchen upgrades,
-    /// preview 3 locked Full-Version silhouette upgrades ("Soon in Full Version"),
-    /// respec freely between shifts, and advance to the next Campaign Day or Endless Mode.
+    /// Drives UpgradeShopScene for the 3-Day Demo:
+    /// No upgrade ranks or tiers — unlocking any of the 3 active cards immediately grants
+    /// its full maxed-out bonus for the rest of the demo run.
     /// </summary>
     public class UpgradeShopManager : MonoBehaviour
     {
@@ -39,7 +38,7 @@ namespace CookingSystem
         [SerializeField] private TMP_Text saveSummaryText;
         [SerializeField] private TMP_Text feedbackBannerText;
 
-        [Header("3 Active Upgrade Cards")]
+        [Header("3 Active Demo Upgrade Cards (Instant Full Bonus)")]
         [SerializeField] private UpgradeCardRefs[] upgradeCards;
 
         [Header("3 Locked Preview Upgrade Cards")]
@@ -64,9 +63,6 @@ namespace CookingSystem
         [SerializeField] private RectTransform headerBarRect;
         [SerializeField] private RectTransform footerBarRect;
 
-        private static readonly Color PipFilledColor = new Color(0.98f, 0.75f, 0.14f, 1f);
-        private static readonly Color PipEmptyColor = new Color(0.24f, 0.16f, 0.12f, 0.90f);
-
         private SaveData activeSave;
         private ViewportOrientation? appliedOrientation;
 
@@ -86,6 +82,8 @@ namespace CookingSystem
 
         private void Awake()
         {
+            ProgressionConfig.EndEndlessRun();
+
             if (soonPopupRoot != null) soonPopupRoot.SetActive(false);
             if (soonPopupCloseButton != null) soonPopupCloseButton.onClick.AddListener(HideSoonPopup);
             if (soonPopupBackdropButton != null) soonPopupBackdropButton.onClick.AddListener(HideSoonPopup);
@@ -102,7 +100,7 @@ namespace CookingSystem
                     if (card != null && card.upgradeButton != null)
                     {
                         KitchenUpgradeId capturedId = card.upgradeId;
-                        card.upgradeButton.onClick.AddListener(() => HandlePurchaseUpgrade(capturedId));
+                        card.upgradeButton.onClick.AddListener(() => HandleUnlockUpgrade(capturedId));
                     }
                 }
             }
@@ -138,8 +136,8 @@ namespace CookingSystem
             if (feedbackBannerText != null)
             {
                 feedbackBannerText.text = activeSave.skillPoints > 0
-                    ? $"You have {activeSave.skillPoints} Skill Point(s) ready to spend!"
-                    : "Adjust your active kitchen upgrades or preview locked Full Version items.";
+                    ? $"You have {activeSave.skillPoints} Skill Point(s)! Pick any card to unlock its FULL maxed bonus!"
+                    : "Your unlocked kitchen bonuses stay active for the rest of the 3-Day Demo.";
             }
 
             RefreshUI();
@@ -177,17 +175,17 @@ namespace CookingSystem
             }
         }
 
-        private void HandlePurchaseUpgrade(KitchenUpgradeId id)
+        private void HandleUnlockUpgrade(KitchenUpgradeId id)
         {
             if (activeSave == null) return;
 
-            if (!ProgressionConfig.TryPurchaseUpgrade(activeSave, id))
+            if (!ProgressionConfig.TryUnlockDemoUpgrade(activeSave, id))
             {
                 if (feedbackBannerText != null)
                 {
-                    feedbackBannerText.text = activeSave.skillPoints <= 0
-                        ? "No Skill Points left! Clear a day or Reset Build to swap upgrades."
-                        : "That upgrade is already at Max Rank (3/3)!";
+                    feedbackBannerText.text = ProgressionConfig.IsDemoUpgradeUnlocked(activeSave, id)
+                        ? $"{ProgressionConfig.GetUpgradeDisplayName(id)} is already unlocked at full strength!"
+                        : "No Skill Points left! Clear a day or Reset Build to swap upgrades.";
                 }
                 return;
             }
@@ -195,7 +193,7 @@ namespace CookingSystem
             SaveSystem.Save();
             if (feedbackBannerText != null)
             {
-                feedbackBannerText.text = $"Upgraded {GetUpgradeDisplayName(id)} to Rank {ProgressionConfig.GetUpgradeRank(activeSave, id)}!";
+                feedbackBannerText.text = $"Unlocked {ProgressionConfig.GetUpgradeDisplayName(id)} — Full Maxed Bonus Active!";
             }
             RefreshUI();
         }
@@ -209,7 +207,7 @@ namespace CookingSystem
                 SaveSystem.Save();
                 if (feedbackBannerText != null)
                 {
-                    feedbackBannerText.text = $"Refunded {refunded} Skill Point(s). Customize your build!";
+                    feedbackBannerText.text = $"Refunded {refunded} Skill Point(s). Pick any full-bonus upgrade!";
                 }
             }
             RefreshUI();
@@ -223,7 +221,7 @@ namespace CookingSystem
             {
                 GameLaunchOptions.SelectedMode = GameMode.Endless;
                 GameLaunchOptions.SelectedDay = 0;
-                LoadingBridge.CustomStatusMessage = "Launching Endless Rush...";
+                LoadingBridge.CustomStatusMessage = "Launching Endless Rush (Roguelike Draft)...";
             }
             else
             {
@@ -257,7 +255,7 @@ namespace CookingSystem
             {
                 if (IsReadyForEndless())
                 {
-                    subtitleText.text = "Day 3 Cleared! Endless Mode Unlocked — Spend Skill Points & Enter Endless Rush";
+                    subtitleText.text = "Day 3 Cleared! Endless Mode Unlocked — Draft Upgrades Live to Kitchen Rank 5!";
                 }
                 else
                 {
@@ -277,10 +275,12 @@ namespace CookingSystem
                 saveSummaryText.text = $"Dishes Served: {activeSave.dishesServed}  |  Best Score: {activeSave.highScore}";
             }
 
-            int totalSpent = activeSave.prepMasteryLevel + activeSave.fastBurnerLevel + activeSave.hospitalityLevel;
+            int totalUnlocked = (activeSave.prepMasteryLevel > 0 ? 1 : 0)
+                              + (activeSave.fastBurnerLevel > 0 ? 1 : 0)
+                              + (activeSave.hospitalityLevel > 0 ? 1 : 0);
             if (resetUpgradesButton != null)
             {
-                resetUpgradesButton.interactable = totalSpent > 0;
+                resetUpgradesButton.interactable = totalUnlocked > 0;
             }
 
             if (nextShiftButtonLabel != null)
@@ -302,91 +302,48 @@ namespace CookingSystem
                 UpgradeCardRefs card = upgradeCards[i];
                 if (card == null) continue;
 
-                int rank = ProgressionConfig.GetUpgradeRank(activeSave, card.upgradeId);
-                bool isMax = rank >= ProgressionConfig.MaxUpgradeRank;
+                bool isUnlocked = ProgressionConfig.IsDemoUpgradeUnlocked(activeSave, card.upgradeId);
 
-                if (card.rankText != null)
+                if (card.statusBadgeText != null)
                 {
-                    card.rankText.text = $"Rank {rank}/{ProgressionConfig.MaxUpgradeRank}";
+                    card.statusBadgeText.text = isUnlocked
+                        ? "<color=#4ADE80>ACTIVE — FULL MAX BONUS</color>"
+                        : (activeSave.skillPoints > 0
+                            ? "<color=#FDE047>READY TO UNLOCK (1 SP)</color>"
+                            : "<color=#94A3B8>NEEDS 1 SKILL POINT</color>");
                 }
 
                 if (card.statsText != null)
                 {
-                    card.statsText.text = BuildUpgradeStatSummary(card.upgradeId, rank);
-                }
-
-                if (card.rankPips != null)
-                {
-                    for (int p = 0; p < card.rankPips.Length; p++)
-                    {
-                        if (card.rankPips[p] != null)
-                        {
-                            card.rankPips[p].color = p < rank ? PipFilledColor : PipEmptyColor;
-                        }
-                    }
+                    card.statsText.text = BuildInstantMaxBonusSummary(card.upgradeId, isUnlocked);
                 }
 
                 if (card.upgradeButton != null)
                 {
-                    card.upgradeButton.interactable = !isMax && activeSave.skillPoints > 0;
+                    card.upgradeButton.interactable = !isUnlocked && activeSave.skillPoints > 0;
                 }
 
                 if (card.upgradeButtonLabel != null)
                 {
-                    card.upgradeButtonLabel.text = isMax
-                        ? "Maxed Out"
-                        : (activeSave.skillPoints > 0 ? "Upgrade (1 SP)" : "Need 1 SP");
+                    card.upgradeButtonLabel.text = isUnlocked
+                        ? "Unlocked (Active)"
+                        : (activeSave.skillPoints > 0 ? "Unlock Full Bonus (1 SP)" : "Need 1 SP");
                 }
             }
         }
 
-        private static string GetUpgradeDisplayName(KitchenUpgradeId id)
+        private static string BuildInstantMaxBonusSummary(KitchenUpgradeId id, bool unlocked)
         {
+            string tag = unlocked ? "<color=#4ADE80>Active Bonus:</color> " : "<color=#FDE047>Instant Max Bonus:</color> ";
             return id switch
             {
-                KitchenUpgradeId.PrepMastery => "Precision Knife & Ladle",
-                KitchenUpgradeId.FastBurner => "Turbo Twin-Jet Burners",
-                KitchenUpgradeId.Hospitality => "Warm Hospitality",
-                _ => "Upgrade"
+                KitchenUpgradeId.PrepMastery =>
+                    $"{tag}59% Sweet Spot  |  76% Cursor Speed\nEffortless Chop & Mix precision for the entire demo!",
+                KitchenUpgradeId.FastBurner =>
+                    $"{tag}2.3s Cook Time  |  4.8s Fire Grace\nBlazing fast pots & pans with extra burn protection!",
+                _ =>
+                    $"{tag}136% Patience  |  +4.5s Freeze  |  +30% Tips\nHappier diners and bigger cash rewards all shift!"
             };
-        }
-
-        private string BuildUpgradeStatSummary(KitchenUpgradeId id, int rank)
-        {
-            switch (id)
-            {
-                case KitchenUpgradeId.PrepMastery:
-                {
-                    int sweetPct = Mathf.RoundToInt(ProgressionConfig.GetPrepSweetSpotHalfWidth(activeSave) * 200f);
-                    int speedPct = Mathf.RoundToInt(ProgressionConfig.GetPrepCursorSpeedMultiplier(activeSave) * 100f);
-                    string curr = $"Sweet Spot: {sweetPct}% Bar  |  Speed: {speedPct}%";
-                    if (rank >= ProgressionConfig.MaxUpgradeRank) return $"{curr}\n<color=#4ADE80>Max Precision Mastery Reached!</color>";
-                    int nextSweet = Mathf.RoundToInt((0.16f + (rank + 1) * 0.045f) * 200f);
-                    int nextSpeed = Mathf.RoundToInt((1f - (rank + 1) * 0.08f) * 100f);
-                    return $"{curr}\n<color=#FDE047>Next: {nextSweet}% Sweet Spot, {nextSpeed}% Speed</color>";
-                }
-                case KitchenUpgradeId.FastBurner:
-                {
-                    float cookSecs = 4.0f * ProgressionConfig.GetCookDurationMultiplier(activeSave);
-                    float graceSecs = 3.0f + ProgressionConfig.GetBurnGraceBonusSeconds(activeSave);
-                    string curr = $"Cook: {cookSecs:F1}s  |  Fire Grace: {graceSecs:F1}s";
-                    if (rank >= ProgressionConfig.MaxUpgradeRank) return $"{curr}\n<color=#4ADE80>Max Burner Speed & Safety Reached!</color>";
-                    float nextCook = 4.0f * (1f - (rank + 1) * 0.14f);
-                    float nextGrace = 3.0f + (rank + 1) * 0.6f;
-                    return $"{curr}\n<color=#FDE047>Next: {nextCook:F1}s Cook, {nextGrace:F1}s Grace</color>";
-                }
-                default:
-                {
-                    int patPct = Mathf.RoundToInt(ProgressionConfig.GetCustomerPatienceMultiplier(activeSave) * 100f);
-                    int tipPct = Mathf.RoundToInt((ProgressionConfig.GetScoreMultiplier(activeSave) - 1f) * 100f);
-                    float freezeBonus = ProgressionConfig.GetDrinkFreezeBonusSeconds(activeSave);
-                    string curr = $"Patience: {patPct}%  |  Freeze: +{freezeBonus:F1}s  |  Tips: +{tipPct}%";
-                    if (rank >= ProgressionConfig.MaxUpgradeRank) return $"{curr}\n<color=#4ADE80>Max Hospitality Reached!</color>";
-                    int nextPat = Mathf.RoundToInt((1f + (rank + 1) * 0.12f) * 100f);
-                    int nextTip = (rank + 1) * 10;
-                    return $"{curr}\n<color=#FDE047>Next: {nextPat}% Patience, +{(rank + 1) * 1.5f:F1}s Freeze, +{nextTip}% Tips</color>";
-                }
-            }
         }
 
         private static Vector2 GetReferenceResolutionForOrientation(ViewportOrientation orientation)

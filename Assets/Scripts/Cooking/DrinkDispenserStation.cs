@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace CookingSystem
 {
     /// <summary>
-    /// Manages the Drink Dispenser station: cup restocking, pouring progress,
-    /// and staging filled drinks onto the FoodDisplayTray.
+    /// Manages the Drink Dispenser station: cup restocking, animated frame-by-frame pouring
+    /// (berry.png / Calamansi.png) + circular Progress Icon ring, and staging filled drinks onto FoodDisplayTray.
     /// </summary>
     [DisallowMultipleComponent]
     public class DrinkDispenserStation : MonoBehaviour
@@ -19,12 +19,16 @@ namespace CookingSystem
 
         [Header("References")]
         [SerializeField] private DraggableCup cupItem;
+        [SerializeField] private GameObject pourProgressRoot;
         [SerializeField] private Image pourProgressFill;
+        [SerializeField] private TMP_Text pourProgressPercentText;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private Button stagePendingDrinkButton;
         [SerializeField] private FoodDisplayTray displayTray;
         [SerializeField] private GameObject berryPourIndicator;
         [SerializeField] private GameObject calamansiPourIndicator;
+        [SerializeField] private UISpriteSheetAnimator berryPourAnimator;
+        [SerializeField] private UISpriteSheetAnimator calamansiPourAnimator;
 
         private bool isPouring;
         private DrinkType pendingDrink = DrinkType.None;
@@ -35,6 +39,10 @@ namespace CookingSystem
         private void Awake()
         {
             if (pourProgressFill != null) pourProgressFill.fillAmount = 0f;
+            if (pourProgressRoot != null) pourProgressRoot.SetActive(false);
+
+            if (berryPourIndicator != null) berryPourIndicator.SetActive(false);
+            if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(false);
 
             if (stagePendingDrinkButton != null)
             {
@@ -60,8 +68,17 @@ namespace CookingSystem
         private IEnumerator PourRoutine(DrinkType drink)
         {
             isPouring = true;
-            if (berryPourIndicator != null) berryPourIndicator.SetActive(drink == DrinkType.BerryJuice);
-            if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(drink == DrinkType.CalamansiTea);
+            bool isBerry = drink == DrinkType.BerryJuice;
+            if (berryPourIndicator != null) berryPourIndicator.SetActive(isBerry);
+            if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(!isBerry);
+            if (pourProgressRoot != null) pourProgressRoot.SetActive(true);
+
+            UISpriteSheetAnimator activeAnim = isBerry ? berryPourAnimator : calamansiPourAnimator;
+            if (activeAnim != null)
+            {
+                activeAnim.SetNormalizedProgress(0f);
+            }
+
             string drinkName = RecipeDatabase.GetDrinkDisplayName(drink);
             UpdateStatus($"Pouring {drinkName}...");
 
@@ -69,14 +86,28 @@ namespace CookingSystem
             while (elapsed < pourDuration)
             {
                 elapsed += Time.deltaTime;
+                float progress = Mathf.Clamp01(elapsed / pourDuration);
+
                 if (pourProgressFill != null)
                 {
-                    pourProgressFill.fillAmount = Mathf.Clamp01(elapsed / pourDuration);
+                    pourProgressFill.fillAmount = progress;
                 }
+                if (pourProgressPercentText != null)
+                {
+                    pourProgressPercentText.text = $"{Mathf.RoundToInt(progress * 100f)}%";
+                }
+                if (activeAnim != null)
+                {
+                    activeAnim.SetNormalizedProgress(progress);
+                }
+
                 yield return null;
             }
 
+            if (activeAnim != null) activeAnim.SetNormalizedProgress(1f);
             if (pourProgressFill != null) pourProgressFill.fillAmount = 0f;
+            if (pourProgressPercentText != null) pourProgressPercentText.text = string.Empty;
+            if (pourProgressRoot != null) pourProgressRoot.SetActive(false);
             if (berryPourIndicator != null) berryPourIndicator.SetActive(false);
             if (calamansiPourIndicator != null) calamansiPourIndicator.SetActive(false);
             isPouring = false;

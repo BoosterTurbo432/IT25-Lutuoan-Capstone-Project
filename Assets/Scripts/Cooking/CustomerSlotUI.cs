@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using CookingSystem.Audio;
 using TMPro;
 using UnityEngine;
@@ -7,10 +8,17 @@ using UnityEngine.UI;
 
 namespace CookingSystem
 {
+    public enum SatisfactionReaction
+    {
+        Happy = 0,
+        Neutral = 1,
+        Angry = 2
+    }
+
     /// <summary>
     /// Represents a single customer seat in Zone6_CustomerZone.
-    /// Enforces a strict non-overlapping RectTransform drop zone, tracks randomized orders,
-    /// depletes patience over time, and computes delivery satisfaction.
+    /// Features cropped half-body portrait framing, icon-based meal recipe guide,
+    /// expressive emoji satisfaction feedback (Satisfaction.png), patience tracking, and drop validation.
     /// </summary>
     public class CustomerSlotUI : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler
     {
@@ -30,6 +38,39 @@ namespace CookingSystem
         [SerializeField] private TMP_Text mealIngredientsText;
         [SerializeField] private TMP_Text drinkOrderText;
         [SerializeField] private TMP_Text feedbackText;
+
+        [Header("Emoji Satisfaction Feedback (Satisfaction.png)")]
+        [SerializeField] private GameObject satisfactionEmojiRoot;
+        [SerializeField] private Image satisfactionEmojiImage;
+        [SerializeField] private Sprite happyEmojiSprite;
+        [SerializeField] private Sprite neutralEmojiSprite;
+        [SerializeField] private Sprite angryEmojiSprite;
+
+        [Header("Icon-Based Meal Recipe Guide")]
+        [SerializeField] private GameObject recipeIconsContainer;
+        [SerializeField] private Image[] recipeIngredientIcons;
+        [SerializeField] private TMP_Text[] recipePlusLabels;
+        [SerializeField] private GameObject recipeDividerObject;
+        [SerializeField] private Image recipeCookwareIcon;
+        [SerializeField] private Image drinkOrderIcon;
+        [SerializeField] private Sprite potIconSprite;
+        [SerializeField] private Sprite panIconSprite;
+        [SerializeField] private Sprite berryDrinkIconSprite;
+        [SerializeField] private Sprite calamansiDrinkIconSprite;
+
+        [Header("12 Ingredient Recipe Icons")]
+        [SerializeField] private Sprite tomatoSprite;
+        [SerializeField] private Sprite cheeseSprite;
+        [SerializeField] private Sprite meatSprite;
+        [SerializeField] private Sprite mushroomSprite;
+        [SerializeField] private Sprite onionSprite;
+        [SerializeField] private Sprite herbsSprite;
+        [SerializeField] private Sprite garlicSprite;
+        [SerializeField] private Sprite potatoSprite;
+        [SerializeField] private Sprite cabbageSprite;
+        [SerializeField] private Sprite carrotsSprite;
+        [SerializeField] private Sprite porkSprite;
+        [SerializeField] private Sprite bellPepperSprite;
 
         [Header("Patience UI")]
         [SerializeField] private Image patienceBarFill;
@@ -57,10 +98,12 @@ namespace CookingSystem
         private float patienceFreezeTimer;
 
         private Coroutine leaveCoroutine;
-        private Coroutine feedbackCoroutine;
+        private Coroutine emojiCoroutine;
+        private bool isShowingTempEmoji;
 
         public bool IsOccupied => isOccupied && !isLeaving;
         public int SlotIndex => slotIndex;
+        public bool IsShowingSatisfactionEmoji => satisfactionEmojiRoot != null && satisfactionEmojiRoot.activeSelf;
 
         public void InitializeEmpty()
         {
@@ -71,14 +114,22 @@ namespace CookingSystem
             mealDelivered = false;
             drinkDelivered = false;
             patienceFreezeTimer = 0f;
+            isShowingTempEmoji = false;
+
+            if (emojiCoroutine != null)
+            {
+                StopCoroutine(emojiCoroutine);
+                emojiCoroutine = null;
+            }
+            if (satisfactionEmojiRoot != null) satisfactionEmojiRoot.SetActive(false);
 
             if (customerVisualRoot != null) customerVisualRoot.SetActive(false);
             if (orderBubbleRoot != null) orderBubbleRoot.gameObject.SetActive(false);
             if (dropHighlightBorder != null) dropHighlightBorder.enabled = false;
             if (cardBackground != null) cardBackground.color = emptyCardColor;
             if (patienceBarFill != null) patienceBarFill.fillAmount = 0f;
-            if (patienceTimerText != null) patienceTimerText.text = "Waiting for customer...";
-            if (slotLabelText != null) slotLabelText.text = $"Customer {slotIndex}  [Open]";
+            if (patienceTimerText != null) patienceTimerText.text = "Waiting...";
+            if (slotLabelText != null) slotLabelText.text = $"Customer {slotIndex}";
             if (feedbackText != null) feedbackText.text = string.Empty;
         }
 
@@ -116,6 +167,7 @@ namespace CookingSystem
             }
 
             RefreshPatienceUI(paused: false);
+            UpdateLivePatienceMoodEmoji();
         }
 
         public void AssignOrder(
@@ -132,6 +184,13 @@ namespace CookingSystem
                 StopCoroutine(leaveCoroutine);
                 leaveCoroutine = null;
             }
+            if (emojiCoroutine != null)
+            {
+                StopCoroutine(emojiCoroutine);
+                emojiCoroutine = null;
+            }
+            isShowingTempEmoji = false;
+            if (satisfactionEmojiRoot != null) satisfactionEmojiRoot.SetActive(false);
 
             orderType = type;
             orderedRecipe = type == OrderType.DrinkOnly ? null : recipe;
@@ -190,12 +249,7 @@ namespace CookingSystem
                 }
                 else
                 {
-                    slotLabelText.text = type switch
-                    {
-                        OrderType.MealAndDrink => $"Customer {slotIndex}  [COMBO ORDER]",
-                        OrderType.DrinkOnly => $"Customer {slotIndex}  [DRINK ORDER]",
-                        _ => $"Customer {slotIndex}  [MEAL ORDER]"
-                    };
+                    slotLabelText.text = $"Customer {slotIndex}";
                 }
             }
 
@@ -211,7 +265,7 @@ namespace CookingSystem
             patienceFreezeTimer = 0f;
             float penalty = patienceDuration * Mathf.Clamp01(fraction);
             patienceRemaining = Mathf.Max(0f, patienceRemaining - penalty);
-            ShowTemporaryFeedback($"<color=#EF4444>{reason} -{Mathf.RoundToInt(fraction * 100f)}%</color>", 2.2f);
+            ShowTemporaryEmoji(SatisfactionReaction.Angry, 2.0f);
             RefreshPatienceUI(paused: false);
 
             if (patienceRemaining <= 0f)
@@ -276,7 +330,7 @@ namespace CookingSystem
                     : $"Customer {slotIndex} already received their meal!";
                 GameAudioManager.Instance?.PlayNotSatisfied();
                 DishNotificationUI.Instance?.ShowNotification(msg);
-                ShowTemporaryFeedback("<color=#F59E0B>Wrong item for order</color>", 1.8f);
+                ShowTemporaryEmoji(SatisfactionReaction.Angry, 1.4f);
                 return;
             }
 
@@ -297,21 +351,21 @@ namespace CookingSystem
             bool completesMealDrinkCombo = orderType == OrderType.MealAndDrink && drinkDelivered;
             LevelGameManager.Instance?.RegisterMealDelivery(awardedBase, quality, satisfaction, accuracy >= 0.55f, completesMealDrinkCombo);
 
-            string qualityTag = satisfaction >= 0.85f ? "Perfect!" : (accuracy >= 0.99f ? "Great!" : "Wrong Dish");
-            Color msgColor = satisfaction >= 0.7f ? new Color(0.22f, 0.80f, 0.46f, 1f) : new Color(0.96f, 0.62f, 0.14f, 1f);
+            SatisfactionReaction reaction = EvaluateMealReaction(accuracy, satisfaction);
+            Color tintColor = GetReactionTintColor(reaction);
 
             if (completesMealDrinkCombo)
             {
                 LevelGameManager.Instance?.RegisterComboCompletion();
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                BeginLeave($"{qualityTag} + Combo!\nSatisfaction {satisfaction * 100f:F0}%", msgColor);
-                DishNotificationUI.Instance?.ShowNotification($"Combo Order Served! Satisfaction: {satisfaction * 100f:F0}%");
+                BeginLeave(reaction, tintColor);
+                DishNotificationUI.Instance?.ShowNotification($"Combo Order Served! (+120 Bonus)");
             }
             else if (orderType == OrderType.MealOnly)
             {
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                BeginLeave($"{qualityTag}\nSatisfaction {satisfaction * 100f:F0}%", msgColor);
-                DishNotificationUI.Instance?.ShowNotification($"Served {payload.dishName}! Satisfaction: {satisfaction * 100f:F0}%");
+                BeginLeave(reaction, tintColor);
+                DishNotificationUI.Instance?.ShowNotification($"Served {payload.dishName}!");
             }
             else
             {
@@ -319,7 +373,7 @@ namespace CookingSystem
                 patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + patienceDuration * 0.15f);
                 RefreshOrderBubble();
                 RefreshPatienceUI(paused: patienceFreezeTimer > 0f);
-                ShowTemporaryFeedback($"<color=#34D399>Meal OK ({satisfaction * 100f:F0}%) - Need Drink!</color>", 2.5f);
+                ShowTemporaryEmoji(reaction, 2.0f);
             }
         }
 
@@ -343,7 +397,7 @@ namespace CookingSystem
                 RefreshPatienceUI(paused: true);
                 GameAudioManager.Instance?.PlaySatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(35, isComboWithMeal: false, satisfaction: -1f);
-                ShowTemporaryFeedback("<color=#38BDF8>Drink Refreshed Patience!</color>", 2.0f);
+                ShowTemporaryEmoji(SatisfactionReaction.Happy, 1.8f);
                 return;
             }
 
@@ -351,6 +405,7 @@ namespace CookingSystem
             {
                 GameAudioManager.Instance?.PlayNotSatisfied();
                 DishNotificationUI.Instance?.ShowNotification($"Customer {slotIndex} already has their drink!");
+                ShowTemporaryEmoji(SatisfactionReaction.Angry, 1.3f);
                 return;
             }
 
@@ -371,15 +426,17 @@ namespace CookingSystem
             patienceFreezeTimer = freezeSecs;
             RefreshPatienceUI(paused: true);
 
+            SatisfactionReaction drinkReaction = exactDrink
+                ? (patienceRatio >= 0.30f ? SatisfactionReaction.Happy : SatisfactionReaction.Neutral)
+                : SatisfactionReaction.Angry;
+
             if (orderType == OrderType.DrinkOnly)
             {
                 if (exactDrink) GameAudioManager.Instance?.PlaySatisfied();
                 else GameAudioManager.Instance?.PlayNotSatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: satisfaction);
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                string tag = exactDrink ? "Refreshed!" : "Wrong Drink";
-                Color c = exactDrink ? new Color(0.22f, 0.80f, 0.46f, 1f) : new Color(0.96f, 0.62f, 0.14f, 1f);
-                BeginLeave($"{tag}\nSatisfaction {satisfaction * 100f:F0}%", c);
+                BeginLeave(drinkReaction, GetReactionTintColor(drinkReaction));
                 DishNotificationUI.Instance?.ShowNotification($"Served {RecipeDatabase.GetDrinkDisplayName(trayItem.DrinkKind)}!");
             }
             else if (mealDelivered)
@@ -387,8 +444,8 @@ namespace CookingSystem
                 // Meal was already delivered -> drink completes combo!
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: true, satisfaction: satisfaction);
                 LevelGameManager.Instance?.RegisterCustomerOrderCompleted();
-                string tag = exactDrink ? "Combo Complete! +120" : "Served + Combo!";
-                BeginLeave($"{tag}\nDrink Match {drinkAccuracy * 100f:F0}%", new Color(0.22f, 0.80f, 0.46f, 1f));
+                SatisfactionReaction comboReaction = exactDrink ? SatisfactionReaction.Happy : SatisfactionReaction.Neutral;
+                BeginLeave(comboReaction, GetReactionTintColor(comboReaction));
                 DishNotificationUI.Instance?.ShowNotification($"Meal + Drink Combo Complete! (+120 Bonus)");
             }
             else
@@ -398,7 +455,7 @@ namespace CookingSystem
                 else GameAudioManager.Instance?.PlayNotSatisfied();
                 LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: -1f);
                 RefreshOrderBubble();
-                ShowTemporaryFeedback("<color=#38BDF8>Drink Served! Patience Paused</color>", 2.5f);
+                ShowTemporaryEmoji(drinkReaction, 1.8f);
             }
         }
 
@@ -407,38 +464,162 @@ namespace CookingSystem
             GameAudioManager.Instance?.PlayNotSatisfied();
             LevelGameManager.Instance?.RegisterCustomerLost();
             DishNotificationUI.Instance?.ShowNotification($"Customer {slotIndex} ran out of patience and left!");
-            BeginLeave("LEFT ANGRY!\nPatience 0%", new Color(0.94f, 0.27f, 0.27f, 1f));
+            BeginLeave(SatisfactionReaction.Angry, GetReactionTintColor(SatisfactionReaction.Angry));
         }
 
-        private void BeginLeave(string message, Color color)
+        private static SatisfactionReaction EvaluateMealReaction(float accuracy, float satisfaction)
+        {
+            if (accuracy < 0.55f) return SatisfactionReaction.Angry;
+            if (satisfaction >= 0.72f) return SatisfactionReaction.Happy;
+            if (satisfaction >= 0.45f) return SatisfactionReaction.Neutral;
+            return SatisfactionReaction.Angry;
+        }
+
+        private static Color GetReactionTintColor(SatisfactionReaction reaction)
+        {
+            return reaction switch
+            {
+                SatisfactionReaction.Happy => new Color(0.22f, 0.80f, 0.46f, 1f),
+                SatisfactionReaction.Neutral => new Color(0.96f, 0.68f, 0.14f, 1f),
+                _ => new Color(0.94f, 0.27f, 0.27f, 1f)
+            };
+        }
+
+        private Sprite GetEmojiSprite(SatisfactionReaction reaction)
+        {
+            return reaction switch
+            {
+                SatisfactionReaction.Happy => happyEmojiSprite,
+                SatisfactionReaction.Neutral => neutralEmojiSprite,
+                _ => angryEmojiSprite
+            };
+        }
+
+        private void UpdateLivePatienceMoodEmoji()
+        {
+            if (isShowingTempEmoji || isLeaving || satisfactionEmojiRoot == null) return;
+            float ratio = patienceDuration > 0f ? Mathf.Clamp01(patienceRemaining / patienceDuration) : 0f;
+
+            if (ratio < 0.30f && ratio > 0f)
+            {
+                if (!satisfactionEmojiRoot.activeSelf)
+                {
+                    ApplyEmojiVisual(SatisfactionReaction.Neutral, popAnimate: true);
+                }
+            }
+            else if (satisfactionEmojiRoot.activeSelf)
+            {
+                satisfactionEmojiRoot.SetActive(false);
+            }
+        }
+
+        public void ShowTemporaryEmoji(SatisfactionReaction reaction, float duration)
+        {
+            if (satisfactionEmojiRoot == null || satisfactionEmojiImage == null) return;
+
+            if (emojiCoroutine != null)
+            {
+                StopCoroutine(emojiCoroutine);
+            }
+            emojiCoroutine = StartCoroutine(TempEmojiRoutine(reaction, duration));
+        }
+
+        private IEnumerator TempEmojiRoutine(SatisfactionReaction reaction, float duration)
+        {
+            isShowingTempEmoji = true;
+            ApplyEmojiVisual(reaction, popAnimate: false);
+            yield return StartCoroutine(PopInEmojiRoutine());
+
+            yield return new WaitForSeconds(Mathf.Max(0.25f, duration - 0.24f));
+
+            isShowingTempEmoji = false;
+            if (!isLeaving && satisfactionEmojiRoot != null)
+            {
+                satisfactionEmojiRoot.SetActive(false);
+            }
+            emojiCoroutine = null;
+        }
+
+        private void ApplyEmojiVisual(SatisfactionReaction reaction, bool popAnimate)
+        {
+            if (satisfactionEmojiRoot == null || satisfactionEmojiImage == null) return;
+
+            Sprite sprite = GetEmojiSprite(reaction);
+            if (sprite != null)
+            {
+                satisfactionEmojiImage.sprite = sprite;
+                satisfactionEmojiImage.color = Color.white;
+                satisfactionEmojiImage.preserveAspect = true;
+            }
+            satisfactionEmojiRoot.SetActive(true);
+
+            if (popAnimate)
+            {
+                if (emojiCoroutine != null) StopCoroutine(emojiCoroutine);
+                emojiCoroutine = StartCoroutine(PopInOnlyRoutine());
+            }
+        }
+
+        private IEnumerator PopInOnlyRoutine()
+        {
+            yield return StartCoroutine(PopInEmojiRoutine());
+            emojiCoroutine = null;
+        }
+
+        private IEnumerator PopInEmojiRoutine()
+        {
+            if (satisfactionEmojiRoot == null) yield break;
+            RectTransform rt = satisfactionEmojiRoot.transform as RectTransform;
+            if (rt == null) yield break;
+
+            float elapsed = 0f;
+            const float popDur = 0.24f;
+            while (elapsed < popDur)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / popDur);
+                float scale = t < 0.65f
+                    ? Mathf.Lerp(0.2f, 1.18f, t / 0.65f)
+                    : Mathf.Lerp(1.18f, 1.0f, (t - 0.65f) / 0.35f);
+                rt.localScale = new Vector3(scale, scale, 1f);
+                yield return null;
+            }
+            rt.localScale = Vector3.one;
+        }
+
+        private void BeginLeave(SatisfactionReaction reaction, Color color)
         {
             isLeaving = true;
             if (dropHighlightBorder != null) dropHighlightBorder.enabled = false;
-            if (feedbackCoroutine != null)
+            if (emojiCoroutine != null)
             {
-                StopCoroutine(feedbackCoroutine);
-                feedbackCoroutine = null;
+                StopCoroutine(emojiCoroutine);
+                emojiCoroutine = null;
             }
+            isShowingTempEmoji = false;
+
             if (leaveCoroutine != null)
             {
                 StopCoroutine(leaveCoroutine);
             }
-            leaveCoroutine = StartCoroutine(LeaveRoutine(message, color));
+            leaveCoroutine = StartCoroutine(LeaveRoutine(reaction, color));
         }
 
-        private IEnumerator LeaveRoutine(string message, Color color)
+        private IEnumerator LeaveRoutine(SatisfactionReaction reaction, Color color)
         {
             if (feedbackText != null)
             {
-                feedbackText.color = color;
-                feedbackText.text = message;
+                feedbackText.text = string.Empty;
             }
             if (cardBackground != null)
             {
-                cardBackground.color = Color.Lerp(defaultCardColor, color, 0.35f);
+                cardBackground.color = Color.Lerp(defaultCardColor, color, 0.32f);
             }
 
-            yield return new WaitForSeconds(1.6f);
+            ApplyEmojiVisual(reaction, popAnimate: false);
+            yield return StartCoroutine(PopInEmojiRoutine());
+
+            yield return new WaitForSeconds(1.35f);
             InitializeEmpty();
             leaveCoroutine = null;
         }
@@ -455,29 +636,49 @@ namespace CookingSystem
                 };
             }
 
+            bool hasIconGuide = recipeIconsContainer != null && recipeIngredientIcons != null && recipeIngredientIcons.Length > 0;
+
             if (mealOrderText != null)
             {
                 if (orderType == OrderType.DrinkOnly)
                 {
-                    mealOrderText.text = mealIngredientsText != null ? "Drink Only" : string.Empty;
-                    if (mealIngredientsText != null) mealIngredientsText.text = "Quick Refresh";
+                    mealOrderText.text = "Drink Only";
+                    if (hasIconGuide)
+                    {
+                        recipeIconsContainer.SetActive(false);
+                    }
+                    if (mealIngredientsText != null)
+                    {
+                        mealIngredientsText.gameObject.SetActive(true);
+                        mealIngredientsText.text = "Quick Refresh";
+                    }
                 }
                 else if (mealDelivered)
                 {
                     mealOrderText.text = $"<s>{orderedRecipe.displayName}</s>";
-                    if (mealIngredientsText != null) mealIngredientsText.text = "<color=#16A34A>Served [OK]</color>";
-                }
-                else
-                {
-                    string ware = orderedRecipe.requiredCookware == CookwareType.Pot ? "Pot" : "Pan";
+                    if (hasIconGuide)
+                    {
+                        recipeIconsContainer.SetActive(false);
+                    }
                     if (mealIngredientsText != null)
                     {
-                        mealOrderText.text = orderedRecipe.displayName;
-                        mealIngredientsText.text = $"{orderedRecipe.GetIngredientSummary()} | {ware}";
+                        mealIngredientsText.gameObject.SetActive(true);
+                        mealIngredientsText.text = "<color=#16A34A>Served [OK]</color>";
                     }
-                    else
+                }
+                else if (orderedRecipe != null)
+                {
+                    mealOrderText.text = orderedRecipe.displayName;
+                    if (hasIconGuide)
                     {
-                        mealOrderText.text = $"{orderedRecipe.displayName}\n<color=#334155>({orderedRecipe.GetIngredientSummary()} | {ware})</color>";
+                        if (mealIngredientsText != null) mealIngredientsText.gameObject.SetActive(false);
+                        PopulateRecipeIcons(orderedRecipe);
+                    }
+                    else if (mealIngredientsText != null)
+                    {
+                        string ware = orderedRecipe.requiredCookware == CookwareType.Pot ? "Pot" : "Pan";
+                        mealIngredientsText.gameObject.SetActive(true);
+                        mealIngredientsText.text = $"{orderedRecipe.GetIngredientSummary()} | {ware}";
                     }
                 }
             }
@@ -486,17 +687,112 @@ namespace CookingSystem
             {
                 if (orderType == OrderType.MealOnly)
                 {
-                    drinkOrderText.text = mealIngredientsText != null ? "(No Drink)" : string.Empty;
+                    drinkOrderText.text = "(No Drink)";
+                    if (drinkOrderIcon != null) drinkOrderIcon.gameObject.SetActive(false);
                 }
                 else if (drinkDelivered)
                 {
-                    drinkOrderText.text = $"<s>{RecipeDatabase.GetDrinkDisplayName(orderedDrink)}</s> <color=#16A34A>[OK]</color>";
+                    drinkOrderText.text = $"<s>{RecipeDatabase.GetDrinkDisplayName(orderedDrink)}</s>";
+                    if (drinkOrderIcon != null)
+                    {
+                        drinkOrderIcon.gameObject.SetActive(true);
+                        drinkOrderIcon.sprite = GetDrinkSprite(orderedDrink);
+                        drinkOrderIcon.color = new Color(0.7f, 1f, 0.78f, 0.75f);
+                    }
                 }
                 else
                 {
-                    drinkOrderText.text = $"+ {RecipeDatabase.GetDrinkDisplayName(orderedDrink)}";
+                    drinkOrderText.text = RecipeDatabase.GetDrinkDisplayName(orderedDrink);
+                    if (drinkOrderIcon != null)
+                    {
+                        Sprite ds = GetDrinkSprite(orderedDrink);
+                        drinkOrderIcon.gameObject.SetActive(ds != null);
+                        if (ds != null)
+                        {
+                            drinkOrderIcon.sprite = ds;
+                            drinkOrderIcon.color = Color.white;
+                        }
+                    }
                 }
             }
+        }
+
+        private void PopulateRecipeIcons(RecipeDefinition recipe)
+        {
+            if (recipeIconsContainer == null || recipe == null) return;
+            recipeIconsContainer.SetActive(true);
+
+            List<IngredientType> reqs = recipe.requiredIngredients;
+            int count = reqs != null ? Mathf.Min(reqs.Count, recipeIngredientIcons.Length) : 0;
+
+            for (int i = 0; i < recipeIngredientIcons.Length; i++)
+            {
+                Image iconImg = recipeIngredientIcons[i];
+                if (iconImg == null) continue;
+
+                if (i < count)
+                {
+                    Sprite ingSprite = GetIngredientSprite(reqs[i]);
+                    iconImg.sprite = ingSprite;
+                    iconImg.color = Color.white;
+                    iconImg.preserveAspect = true;
+                    iconImg.gameObject.SetActive(ingSprite != null);
+                }
+                else
+                {
+                    iconImg.gameObject.SetActive(false);
+                }
+            }
+
+            if (recipePlusLabels != null)
+            {
+                for (int i = 0; i < recipePlusLabels.Length; i++)
+                {
+                    if (recipePlusLabels[i] != null)
+                    {
+                        recipePlusLabels[i].gameObject.SetActive(i < count - 1);
+                    }
+                }
+            }
+
+            if (recipeDividerObject != null)
+            {
+                recipeDividerObject.SetActive(count > 0 && recipeCookwareIcon != null);
+            }
+
+            if (recipeCookwareIcon != null)
+            {
+                Sprite wareSprite = recipe.requiredCookware == CookwareType.Pan ? panIconSprite : potIconSprite;
+                recipeCookwareIcon.sprite = wareSprite;
+                recipeCookwareIcon.color = Color.white;
+                recipeCookwareIcon.preserveAspect = true;
+                recipeCookwareIcon.gameObject.SetActive(wareSprite != null);
+            }
+        }
+
+        private Sprite GetDrinkSprite(DrinkType drink)
+        {
+            return drink == DrinkType.CalamansiTea ? calamansiDrinkIconSprite : berryDrinkIconSprite;
+        }
+
+        private Sprite GetIngredientSprite(IngredientType type)
+        {
+            return type switch
+            {
+                IngredientType.Tomato => tomatoSprite,
+                IngredientType.Cheese => cheeseSprite,
+                IngredientType.Meat => meatSprite,
+                IngredientType.Mushroom => mushroomSprite,
+                IngredientType.Onion => onionSprite,
+                IngredientType.Herbs => herbsSprite,
+                IngredientType.Garlic => garlicSprite,
+                IngredientType.Potato => potatoSprite,
+                IngredientType.Cabbage => cabbageSprite,
+                IngredientType.Carrots => carrotsSprite,
+                IngredientType.Pork => porkSprite,
+                IngredientType.BellPepper => bellPepperSprite,
+                _ => tomatoSprite
+            };
         }
 
         private void RefreshPatienceUI(bool paused)
@@ -535,28 +831,6 @@ namespace CookingSystem
                     patienceTimerText.text = $"Patience: {Mathf.CeilToInt(patienceRemaining)}s";
                 }
             }
-        }
-
-        private void ShowTemporaryFeedback(string message, float duration)
-        {
-            if (feedbackText == null) return;
-            if (feedbackCoroutine != null)
-            {
-                StopCoroutine(feedbackCoroutine);
-            }
-            feedbackCoroutine = StartCoroutine(TempFeedbackRoutine(message, duration));
-        }
-
-        private IEnumerator TempFeedbackRoutine(string message, float duration)
-        {
-            feedbackText.color = Color.white;
-            feedbackText.text = message;
-            yield return new WaitForSeconds(duration);
-            if (!isLeaving && feedbackText != null)
-            {
-                feedbackText.text = string.Empty;
-            }
-            feedbackCoroutine = null;
         }
     }
 }

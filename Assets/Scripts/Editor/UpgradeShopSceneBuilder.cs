@@ -42,10 +42,14 @@ namespace CookingSystem.EditorTools
         private static void EnsureSceneCreated()
         {
             if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (File.Exists(UpgradeShopScenePath) && File.ReadAllText(UpgradeShopScenePath).Contains("SoonPopupModal"))
+            if (File.Exists(UpgradeShopScenePath))
             {
-                BuildSceneListSetup.AddGameScenes();
-                return;
+                string raw = File.ReadAllText(UpgradeShopScenePath);
+                if (raw.Contains("SoonPopupModal") && raw.Contains("StatusBadgeText") && !raw.Contains("RankPips"))
+                {
+                    BuildSceneListSetup.AddGameScenes();
+                    return;
+                }
             }
 
             CreateUpgradeShopSceneInternal(openAfterSave: false);
@@ -68,6 +72,11 @@ namespace CookingSystem.EditorTools
             if (!ok) EditorApplication.Exit(1);
         }
 
+        public static bool RebuildSilently(bool openAfterSave = false)
+        {
+            return CreateUpgradeShopSceneInternal(openAfterSave);
+        }
+
         private static bool CreateUpgradeShopSceneInternal(bool openAfterSave)
         {
             CarinderiaAssetGenerator.EnsureAllGeneratedAssets();
@@ -75,15 +84,18 @@ namespace CookingSystem.EditorTools
 
             Scene prevScene = SceneManager.GetActiveScene();
             string prevScenePath = prevScene.path;
+            bool replaceActiveShop = !openAfterSave && prevScenePath == UpgradeShopScenePath;
 
-            Scene shopScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, openAfterSave ? NewSceneMode.Single : NewSceneMode.Additive);
+            Scene shopScene = EditorSceneManager.NewScene(
+                NewSceneSetup.EmptyScene,
+                (openAfterSave || replaceActiveShop) ? NewSceneMode.Single : NewSceneMode.Additive);
 
             EnsureCamera(shopScene);
             EnsureEventSystem(shopScene);
             BuildSceneContents(shopScene);
 
             bool saved = EditorSceneManager.SaveScene(shopScene, UpgradeShopScenePath);
-            if (!openAfterSave && !string.IsNullOrEmpty(prevScenePath) && prevScenePath != UpgradeShopScenePath)
+            if (!openAfterSave && !replaceActiveShop && !string.IsNullOrEmpty(prevScenePath) && prevScenePath != UpgradeShopScenePath)
             {
                 EditorSceneManager.CloseScene(shopScene, true);
             }
@@ -325,39 +337,19 @@ namespace CookingSystem.EditorTools
             CreateAnchoredLabel("DescriptionText", card, new Vector2(0.06f, 0.35f), new Vector2(0.94f, 0.50f),
                 description, 15f, FontStyles.Normal, Hex("FFF3D6"), TextAlignmentOptions.Center, 11f);
 
-            TMP_Text statsTmp = CreateAnchoredLabel("StatsText", card, new Vector2(0.05f, 0.21f), new Vector2(0.95f, 0.35f),
-                "Current -> Next", 14f, FontStyles.Bold, Color.white, TextAlignmentOptions.Center, 10f);
+            TMP_Text statsTmp = CreateAnchoredLabel("StatsText", card, new Vector2(0.05f, 0.22f), new Vector2(0.95f, 0.36f),
+                "Instant Max Bonus", 14f, FontStyles.Bold, Color.white, TextAlignmentOptions.Center, 10f);
 
-            TMP_Text rankTmp = CreateAnchoredLabel("RankText", card, new Vector2(0.07f, 0.135f), new Vector2(0.42f, 0.21f),
-                "Rank 0/3", 16f, FontStyles.Bold, Hex("FBBF24"), TextAlignmentOptions.Left, 11f);
-
-            RectTransform pipsRow = CreateRect("RankPips", card);
-            pipsRow.anchorMin = new Vector2(0.46f, 0.145f);
-            pipsRow.anchorMax = new Vector2(0.93f, 0.20f);
-            pipsRow.offsetMin = Vector2.zero;
-            pipsRow.offsetMax = Vector2.zero;
-            HorizontalLayoutGroup pipsHlg = pipsRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            pipsHlg.spacing = 10f;
-            pipsHlg.childControlWidth = true;
-            pipsHlg.childControlHeight = true;
-            pipsHlg.childForceExpandWidth = true;
-            pipsHlg.childForceExpandHeight = true;
-
-            Image[] pips = new Image[3];
-            for (int i = 0; i < 3; i++)
-            {
-                RectTransform pip = CreateRect($"Pip_{i + 1}", pipsRow);
-                pips[i] = AddImage(pip, new Color(0.24f, 0.16f, 0.12f, 0.90f), roundedSprite, 0.5f);
-                pips[i].raycastTarget = false;
-            }
+            TMP_Text statusBadgeTmp = CreateAnchoredLabel("StatusBadgeText", card, new Vector2(0.07f, 0.14f), new Vector2(0.93f, 0.215f),
+                "READY TO UNLOCK (1 SP)", 15f, FontStyles.Bold, Hex("FDE047"), TextAlignmentOptions.Center, 11f);
 
             RectTransform btnHolder = CreateRect("UpgradeBtnHolder", card);
-            btnHolder.anchorMin = new Vector2(0.12f, 0.03f);
-            btnHolder.anchorMax = new Vector2(0.88f, 0.13f);
+            btnHolder.anchorMin = new Vector2(0.10f, 0.03f);
+            btnHolder.anchorMax = new Vector2(0.90f, 0.135f);
             btnHolder.offsetMin = Vector2.zero;
             btnHolder.offsetMax = Vector2.zero;
 
-            Button upgBtn = CreateActionButton("UpgradeButton", btnHolder, "Upgrade (1 SP)",
+            Button upgBtn = CreateActionButton("UpgradeButton", btnHolder, "Unlock Full Bonus (1 SP)",
                 Vector2.zero, new Vector2(360f, 38f), Hex("16A34A"), 18f);
             Stretch((RectTransform)upgBtn.transform);
             TMP_Text upgBtnLbl = upgBtn.GetComponentInChildren<TMP_Text>();
@@ -365,11 +357,10 @@ namespace CookingSystem.EditorTools
             return new UpgradeCardRefs
             {
                 upgradeId = upgradeId,
-                rankText = rankTmp,
+                statusBadgeText = statusBadgeTmp,
                 statsText = statsTmp,
                 upgradeButton = upgBtn,
-                upgradeButtonLabel = upgBtnLbl,
-                rankPips = pips
+                upgradeButtonLabel = upgBtnLbl
             };
         }
 
@@ -494,17 +485,10 @@ namespace CookingSystem.EditorTools
         private static void AssignCardProperty(SerializedProperty prop, UpgradeCardRefs card)
         {
             prop.FindPropertyRelative("upgradeId").enumValueIndex = (int)card.upgradeId;
-            prop.FindPropertyRelative("rankText").objectReferenceValue = card.rankText;
+            prop.FindPropertyRelative("statusBadgeText").objectReferenceValue = card.statusBadgeText;
             prop.FindPropertyRelative("statsText").objectReferenceValue = card.statsText;
             prop.FindPropertyRelative("upgradeButton").objectReferenceValue = card.upgradeButton;
             prop.FindPropertyRelative("upgradeButtonLabel").objectReferenceValue = card.upgradeButtonLabel;
-
-            SerializedProperty pipsProp = prop.FindPropertyRelative("rankPips");
-            pipsProp.arraySize = card.rankPips.Length;
-            for (int i = 0; i < card.rankPips.Length; i++)
-            {
-                pipsProp.GetArrayElementAtIndex(i).objectReferenceValue = card.rankPips[i];
-            }
         }
 
         private static void AssignLockedCardProperty(SerializedProperty prop, LockedUpgradeCardRefs card)

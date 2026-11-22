@@ -69,9 +69,10 @@ namespace CookingSystem
             if (currentDay > 3) currentDay = 3;
             if (highestDayCleared < 0) highestDayCleared = 0;
             if (skillPoints < 0) skillPoints = 0;
-            prepMasteryLevel = Math.Max(0, Math.Min(3, prepMasteryLevel));
-            fastBurnerLevel = Math.Max(0, Math.Min(3, fastBurnerLevel));
-            hospitalityLevel = Math.Max(0, Math.Min(3, hospitalityLevel));
+            // In the 3-Day Demo shop, upgrades are instant full-bonus unlocks (0 = locked, 1 = unlocked)
+            prepMasteryLevel = prepMasteryLevel > 0 ? 1 : 0;
+            fastBurnerLevel = fastBurnerLevel > 0 ? 1 : 0;
+            hospitalityLevel = hospitalityLevel > 0 ? 1 : 0;
             if (highestDayCleared >= 3) endlessModeUnlocked = true;
 
             version = LatestVersion;

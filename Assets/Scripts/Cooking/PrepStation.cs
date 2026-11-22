@@ -53,6 +53,14 @@ namespace CookingSystem
         [Header("Output Draggable Token")]
         [SerializeField] private DraggablePreparedDish preparedDishToken;
 
+        [Header("Resolution-Safe Prep Action Animations")]
+        [SerializeField] private UISpriteSheetAnimator prepActionAnimator;
+        [SerializeField] private Sprite[] chopAnimFrames;
+        [SerializeField] private Sprite[] mixAnimFrames;
+        [SerializeField] private GameObject emptyBoardSlotsRoot;
+        [SerializeField] private GameObject placedMiniIconsRoot;
+        [SerializeField] private Image[] placedMiniIcons;
+
         [Header("Board Ingredient Slots (Optional 2D Icons)")]
         [SerializeField] private Image[] ingredientSlotIcons;
         [SerializeField] private TextMeshProUGUI[] ingredientSlotLabels;
@@ -108,6 +116,11 @@ namespace CookingSystem
                 preparedDishToken.gameObject.SetActive(false);
             }
 
+            if (prepActionAnimator != null)
+            {
+                prepActionAnimator.StopAndHide();
+            }
+
             if (precisionBarRoot != null)
             {
                 Button barBtn = precisionBarRoot.GetComponent<Button>();
@@ -131,7 +144,7 @@ namespace CookingSystem
             RefreshUI();
         }
 
-        private void ApplyUpgradeBonuses()
+        public void ApplyUpgradeBonuses()
         {
             SaveData save = SaveSystem.GetOrCreateCurrent();
             sweetSpotHalfWidth = ProgressionConfig.GetPrepSweetSpotHalfWidth(save);
@@ -207,6 +220,7 @@ namespace CookingSystem
             {
                 currentStage = PrepStage.Chopping;
                 cursorPhase = 0f;
+                StartPrepAnimation(chopAnimFrames, 6.5f);
             }
 
             RefreshUI();
@@ -226,6 +240,7 @@ namespace CookingSystem
             currentStage = PrepStage.Mixing;
             stageStartTime = Time.time;
             cursorPhase = 0.2f;
+            StartPrepAnimation(mixAnimFrames, 7.5f);
             RefreshUI();
             onStageChanged?.Invoke(currentStage);
         }
@@ -241,8 +256,23 @@ namespace CookingSystem
 
             currentStage = PrepStage.AssigningCookware;
             stageStartTime = Time.time;
+            PlayPrepFinishBurst(mixAnimFrames);
             RefreshUI();
             onStageChanged?.Invoke(currentStage);
+        }
+
+        private void StartPrepAnimation(Sprite[] frames, float fps)
+        {
+            if (prepActionAnimator == null || frames == null || frames.Length == 0) return;
+            prepActionAnimator.SetFrames(frames, fps, shouldLoop: true);
+            prepActionAnimator.PlayLoop(fps);
+        }
+
+        private void PlayPrepFinishBurst(Sprite[] frames)
+        {
+            if (prepActionAnimator == null || frames == null || frames.Length == 0) return;
+            prepActionAnimator.SetFrames(frames, 10f, shouldLoop: false);
+            prepActionAnimator.PlayOneShot(durationSeconds: 0.36f, fadeOutTail: true, hideWhenDone: true, startScale: 0.96f, endScale: 1.08f);
         }
 
         private void HandleAssignCookware(CookwareType cookware)
@@ -304,6 +334,11 @@ namespace CookingSystem
                 preparedDishToken.gameObject.SetActive(false);
             }
 
+            if (prepActionAnimator != null)
+            {
+                prepActionAnimator.StopAndHide();
+            }
+
             CookingStation.HighlightRecommendedStations(null, false);
             RefreshUI();
             onIngredientsChanged?.Invoke(0);
@@ -328,15 +363,46 @@ namespace CookingSystem
 
         private void RefreshUI()
         {
+            bool hasMiniIconBar = placedMiniIconsRoot != null && placedMiniIcons != null && placedMiniIcons.Length > 0;
+            bool hasIngredients = currentIngredients.Count > 0;
+
+            if (emptyBoardSlotsRoot != null)
+            {
+                emptyBoardSlotsRoot.SetActive(!hasIngredients);
+            }
+
+            if (placedMiniIconsRoot != null)
+            {
+                placedMiniIconsRoot.SetActive(hasIngredients);
+            }
+
+            if (hasMiniIconBar)
+            {
+                for (int i = 0; i < placedMiniIcons.Length; i++)
+                {
+                    Image mini = placedMiniIcons[i];
+                    if (mini == null) continue;
+                    bool filled = i < currentIngredients.Count;
+                    mini.gameObject.SetActive(filled);
+                    if (filled)
+                    {
+                        Sprite s = GetSpriteForIngredient(currentIngredients[i]);
+                        mini.sprite = s;
+                        mini.color = Color.white;
+                        mini.preserveAspect = true;
+                    }
+                }
+            }
+
             if (ingredientsSummaryText != null)
             {
-                if (currentIngredients.Count == 0)
+                // When compact mini ingredient icons are present, hide text overlay so the board stays clean
+                ingredientsSummaryText.gameObject.SetActive(!hasMiniIconBar);
+                if (!hasMiniIconBar)
                 {
-                    ingredientsSummaryText.text = "Board: Drop 1-3 Items";
-                }
-                else
-                {
-                    ingredientsSummaryText.text = "Board: " + string.Join(" + ", currentIngredients);
+                    ingredientsSummaryText.text = currentIngredients.Count == 0
+                        ? "Board: Drop 1-3 Items"
+                        : "Board: " + string.Join(" + ", currentIngredients);
                 }
             }
 
