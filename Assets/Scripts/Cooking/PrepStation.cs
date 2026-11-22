@@ -29,8 +29,8 @@ namespace CookingSystem
     {
         [Header("Station Limits & Timing")]
         [SerializeField] private int maxIngredients = 3;
-        [SerializeField] private float cursorSweepSpeed = 1.45f;
-        [SerializeField] private float efficiencyTargetSeconds = 8f;
+        [SerializeField] private float cursorSweepSpeed = 1.05f;
+        [SerializeField] private float efficiencyTargetSeconds = 14f;
 
         [Header("UI Controls")]
         [SerializeField] private TextMeshProUGUI stageStatusText;
@@ -234,8 +234,8 @@ namespace CookingSystem
 
             GameAudioManager.Instance?.PlayChop();
             float accuracy = EvaluateTimingBarScore();
-            float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 4f);
-            chopScore = Mathf.Clamp01(accuracy * 0.75f + speedFactor * 0.25f);
+            float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 8f);
+            chopScore = Mathf.Clamp01(accuracy * 0.80f + speedFactor * 0.20f);
 
             currentStage = PrepStage.Mixing;
             stageStartTime = Time.time;
@@ -251,8 +251,8 @@ namespace CookingSystem
 
             GameAudioManager.Instance?.PlayMix();
             float accuracy = EvaluateTimingBarScore();
-            float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 4f);
-            mixScore = Mathf.Clamp01(accuracy * 0.75f + speedFactor * 0.25f);
+            float speedFactor = EvaluateSpeedFactor(Time.time - stageStartTime, 8f);
+            mixScore = Mathf.Clamp01(accuracy * 0.80f + speedFactor * 0.20f);
 
             currentStage = PrepStage.AssigningCookware;
             stageStartTime = Time.time;
@@ -350,15 +350,15 @@ namespace CookingSystem
             float normalized = Mathf.PingPong(cursorPhase, 1f);
             float distanceFromCenter = Mathf.Abs(normalized - 0.5f);
             if (distanceFromCenter <= sweetSpotHalfWidth) return 1.0f;   // Green sweet spot (upgradable)
-            if (distanceFromCenter <= yellowHalfWidth) return 0.80f;     // Yellow zone (upgradable)
-            return 0.55f;                                                 // Outer edge
+            if (distanceFromCenter <= yellowHalfWidth) return 0.88f;     // Yellow zone (upgradable)
+            return 0.72f;                                                 // Outer edge (forgiving for new players)
         }
 
         private static float EvaluateSpeedFactor(float elapsed, float targetSeconds)
         {
             if (elapsed <= targetSeconds) return 1f;
             float overtime = elapsed - targetSeconds;
-            return Mathf.Clamp(1f - (overtime / (targetSeconds * 1.5f)), 0.45f, 1f);
+            return Mathf.Clamp(1f - (overtime / (targetSeconds * 2.5f)), 0.75f, 1f);
         }
 
         private void RefreshUI()

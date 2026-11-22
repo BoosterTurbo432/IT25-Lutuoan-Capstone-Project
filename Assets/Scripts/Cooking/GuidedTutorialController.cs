@@ -258,7 +258,7 @@ namespace CookingSystem
                         }
                         else
                         {
-                            instructionText.text = "Wait for the ring to finish, then tap Plate! before 3s!";
+                            instructionText.text = "Wait for the ring to finish, then tap Plate! within 5s!";
                         }
                         break;
                     case TutorialStep.ServeCustomer:

@@ -209,7 +209,11 @@ namespace CookingSystem.EditorTools
             {
                 Transform bubble = r.transform.Find(LayoutRootName + "/Zone6_CustomerZone/CustomerSlots/CustomerSlot_1/OrderBubble");
                 bool orderNeedsReadabilityFix = bubble is RectTransform br && br.sizeDelta.x < 240f;
+                Transform burner1 = r.transform.Find(LayoutRootName + "/Countertop_Area/Zone1_StoveArea/StoveArtRoot/BurnerSlot_1_Pot");
+                CookingStation b1Station = burner1 != null ? burner1.GetComponent<CookingStation>() : null;
+                bool needsBalancePatch = b1Station != null && b1Station.BurnDuration < 4.5f;
                 return orderNeedsReadabilityFix ||
+                       needsBalancePatch ||
                        r.transform.Find(LayoutRootName + "/HelpGuideModal") == null ||
                        r.transform.Find(LayoutRootName + "/PauseMenuModal") == null ||
                        r.transform.Find(LayoutRootName + "/PauseMenuModal/PauseCard/InnerSurface/PauseAudioPanel") == null ||
@@ -1091,7 +1095,7 @@ namespace CookingSystem.EditorTools
             stoveImg.preserveAspect = true;
             stoveImg.raycastTarget = false;
 
-            CreatePillLabel("StoveHeaderPill", "ZoneHeader_StoveArea", zone, "Stove: Drop Prepped Pot/Pan -> Plate in 3s",
+            CreatePillLabel("StoveHeaderPill", "ZoneHeader_StoveArea", zone, "Stove: Drop Prepped Pot/Pan -> Plate in 5s",
                 new Vector2(0f, 174f), new Vector2(480f, 26f), PillDarkAlpha, 14f, TextLight, 11f);
 
             // Exact measured grate centers inside burnerstove.png (528x362):
@@ -1238,7 +1242,7 @@ namespace CookingSystem.EditorTools
             stationSo.FindProperty("autoStartCookingWhenFull").boolValue = false;
             stationSo.FindProperty("cookDuration").floatValue = 4f;
             stationSo.FindProperty("canBurn").boolValue = true;
-            stationSo.FindProperty("burnDuration").floatValue = 3f;
+            stationSo.FindProperty("burnDuration").floatValue = 5f;
             stationSo.FindProperty("cookwareType").enumValueIndex = (int)cookware;
             stationSo.FindProperty("requirePrepStation").boolValue = true;
             SetRef(stationSo, "displayTray", displayTray);
@@ -1464,8 +1468,8 @@ namespace CookingSystem.EditorTools
             prepStationComp = boardSlot.gameObject.AddComponent<PrepStation>();
             var prepSo = new SerializedObject(prepStationComp);
             prepSo.FindProperty("maxIngredients").intValue = 3;
-            prepSo.FindProperty("cursorSweepSpeed").floatValue = 1.45f;
-            prepSo.FindProperty("efficiencyTargetSeconds").floatValue = 8f;
+            prepSo.FindProperty("cursorSweepSpeed").floatValue = 1.05f;
+            prepSo.FindProperty("efficiencyTargetSeconds").floatValue = 14f;
             SetRef(prepSo, "stageStatusText", stageStatusTmp);
             SetRef(prepSo, "ingredientsSummaryText", ingredientsSummaryTmp);
             SetRef(prepSo, "chopButton", chopBtn);
@@ -1887,7 +1891,7 @@ namespace CookingSystem.EditorTools
 
             CreateAnchoredLabel("CookFlowHint", cookSection,
                 new Vector2(0.38f, 0.84f), new Vector2(0.98f, 0.97f),
-                "Prep & Chop -> Cook on Stove -> Beat 3s Fire -> Plate to Tray",
+                "Prep & Chop -> Cook on Stove -> Beat 5s Fire -> Plate to Tray",
                 16f, FontStyles.Italic, TextWarmCream, 11f);
 
             RectTransform cookGridRect = CreateRect("CookStepsGrid", cookSection);
@@ -1914,9 +1918,9 @@ namespace CookingSystem.EditorTools
                 ladleSprite ?? potCookedSprite, stoveSprite, progressIconGreenSprite, showArrowBetween12: true,
                 "Pick glowing Ladle or Spatula & drag to stove.");
 
-            CreateDinerDashPanel(cookGridRect, "CookCard_3_Fire", "3. Avoid 3s Fire!", Hex("EF4444"),
+            CreateDinerDashPanel(cookGridRect, "CookCard_3_Fire", "3. Avoid 5s Fire!", Hex("EF4444"),
                 flameFrame, extinguisherSprite, foamFrame, showArrowBetween12: true,
-                "Plate in 3s! Spray foam on fire & trash burnt food.");
+                "Plate in 5s! Spray foam on fire & trash burnt food.");
 
             CreateDinerDashPanel(cookGridRect, "CookCard_4_Plate", "4. Plate to Tray", Hex("16A34A"),
                 potCookedSprite, trayWithDishSprite, null, showArrowBetween12: true,

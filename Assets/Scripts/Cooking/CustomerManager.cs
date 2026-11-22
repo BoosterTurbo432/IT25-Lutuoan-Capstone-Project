@@ -88,7 +88,8 @@ namespace CookingSystem
 
         public void ResumeAfterTutorial()
         {
-            spawnTimer = 1.0f;
+            // Give new students a calm moment after finishing the guided tutorial before Customer 2 arrives
+            spawnTimer = 2.5f;
         }
 
         public void ConfigureForSession(GameMode mode, int day, SaveData save)
@@ -141,12 +142,18 @@ namespace CookingSystem
                 return;
             }
 
+            // Smart empty-counter pacing: fast players never wait long when all seats are clear,
+            // while new students get the full calm spawnInterval whenever a customer is already seated.
+            if (GetOccupiedCount() == 0 && spawnTimer > 2.2f)
+            {
+                spawnTimer = 2.2f;
+            }
+
             spawnTimer -= Time.deltaTime;
             if (spawnTimer <= 0f)
             {
-                bool spawned = TrySpawnCustomer();
-                float quickFillDelay = Mathf.Min(2.2f, spawnInterval * 0.45f);
-                spawnTimer = spawned && GetOccupiedCount() < 2 ? quickFillDelay : spawnInterval;
+                TrySpawnCustomer();
+                spawnTimer = spawnInterval;
             }
         }
 

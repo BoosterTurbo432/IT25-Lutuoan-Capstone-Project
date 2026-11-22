@@ -133,63 +133,62 @@ namespace CookingSystem
                 1 => new DayShiftConfig(
                     dayNumber: 1,
                     shiftTitle: "Opening Shift",
-                    durationSeconds: 180f,
-                    customerQuota: 6,
-                    initialSpawnDelay: 1.0f,
-                    spawnInterval: 7.0f,
-                    basePatienceSeconds: 62f,
-                    mealOnlyWeight: 0.55f,
+                    durationSeconds: 210f,
+                    customerQuota: 5,
+                    initialSpawnDelay: 2.0f,
+                    spawnInterval: 14.0f,
+                    basePatienceSeconds: 85f,
+                    mealOnlyWeight: 0.65f,
                     drinkOnlyWeight: 0.25f,
                     showTutorialOnStart: true),
                 2 => new DayShiftConfig(
                     dayNumber: 2,
                     shiftTitle: "Lunch Rush",
-                    durationSeconds: 180f,
-                    customerQuota: 8,
-                    initialSpawnDelay: 0.8f,
-                    spawnInterval: 5.5f,
-                    basePatienceSeconds: 52f,
-                    mealOnlyWeight: 0.40f,
-                    drinkOnlyWeight: 0.20f,
+                    durationSeconds: 210f,
+                    customerQuota: 7,
+                    initialSpawnDelay: 1.8f,
+                    spawnInterval: 11.5f,
+                    basePatienceSeconds: 74f,
+                    mealOnlyWeight: 0.45f,
+                    drinkOnlyWeight: 0.25f,
                     showTutorialOnStart: false),
                 _ => new DayShiftConfig(
                     dayNumber: 3,
                     shiftTitle: "Fiesta Peak",
-                    durationSeconds: 180f,
-                    customerQuota: 10,
-                    initialSpawnDelay: 0.6f,
-                    spawnInterval: 4.5f,
-                    basePatienceSeconds: 44f,
-                    mealOnlyWeight: 0.30f,
-                    drinkOnlyWeight: 0.15f,
+                    durationSeconds: 210f,
+                    customerQuota: 9,
+                    initialSpawnDelay: 1.5f,
+                    spawnInterval: 9.5f,
+                    basePatienceSeconds: 64f,
+                    mealOnlyWeight: 0.35f,
+                    drinkOnlyWeight: 0.20f,
                     showTutorialOnStart: false)
             };
         }
 
-        // --- Endless Mode Dynamic Difficulty Curve (steps every 2-3 customers served) ---
+        // --- Endless Mode Dynamic Difficulty Curve (gradual ramp every 3 customers served) ---
 
         public static int GetEndlessRushTier(int customersServed)
         {
-            if (customersServed < 2) return 0;
-            return (customersServed * 2 + 1) / 5;
+            return Mathf.Max(0, customersServed / 3);
         }
 
         public static float GetEndlessSpawnInterval(int rushTier)
         {
-            return Mathf.Max(2.0f, 6.2f - rushTier * 0.65f);
+            return Mathf.Max(3.2f, 10.5f - rushTier * 0.55f);
         }
 
         public static float GetEndlessBasePatience(int rushTier)
         {
-            return Mathf.Max(22f, 54f - rushTier * 4.5f);
+            return Mathf.Max(32f, 72f - rushTier * 3.5f);
         }
 
         public static void GetEndlessOrderWeights(int rushTier, out float mealOnlyWeight, out float drinkOnlyWeight)
         {
-            float comboWeight = Mathf.Clamp(0.25f + rushTier * 0.06f, 0.25f, 0.65f);
+            float comboWeight = Mathf.Clamp(0.20f + rushTier * 0.05f, 0.20f, 0.55f);
             float remaining = 1f - comboWeight;
-            mealOnlyWeight = remaining * 0.68f;
-            drinkOnlyWeight = remaining * 0.32f;
+            mealOnlyWeight = remaining * 0.65f;
+            drinkOnlyWeight = remaining * 0.35f;
         }
 
         // --- Demo Campaign Instant-Max Unlocks (Days 1-3 Upgrade Shop) ---
@@ -262,21 +261,21 @@ namespace CookingSystem
             return IsDemoUpgradeUnlocked(save, id) ? DemoMaxedBonusEquivalent : 0;
         }
 
-        // Upgrade 1: Precision Knife & Ladle
+        // Upgrade 1: Precision Knife & Ladle (wider base sweet spot for approachable learning)
         public static float GetPrepSweetSpotHalfWidth(SaveData save)
         {
             int lvl = GetEffectiveLevel(save, KitchenUpgradeId.PrepMastery);
             return isEndlessRunActive
-                ? Mathf.Min(0.38f, 0.16f + lvl * 0.042f)
-                : 0.16f + lvl * 0.045f; // Demo maxed = 0.295 (59% bar)
+                ? Mathf.Min(0.40f, 0.20f + lvl * 0.04f)
+                : 0.20f + lvl * 0.04f; // Base 40% bar, Demo maxed = 64% bar
         }
 
         public static float GetPrepYellowHalfWidth(SaveData save)
         {
             int lvl = GetEffectiveLevel(save, KitchenUpgradeId.PrepMastery);
             return isEndlessRunActive
-                ? Mathf.Min(0.46f, 0.32f + lvl * 0.032f)
-                : 0.32f + lvl * 0.04f;
+                ? Mathf.Min(0.48f, 0.36f + lvl * 0.025f)
+                : 0.36f + lvl * 0.03f;
         }
 
         public static float GetPrepCursorSpeedMultiplier(SaveData save)
@@ -334,8 +333,8 @@ namespace CookingSystem
             {
                 case KitchenUpgradeId.PrepMastery:
                 {
-                    int curSweet = Mathf.RoundToInt(Mathf.Min(0.38f, 0.16f + cur * 0.042f) * 200f);
-                    int nextSweet = Mathf.RoundToInt(Mathf.Min(0.38f, 0.16f + next * 0.042f) * 200f);
+                    int curSweet = Mathf.RoundToInt(Mathf.Min(0.40f, 0.20f + cur * 0.04f) * 200f);
+                    int nextSweet = Mathf.RoundToInt(Mathf.Min(0.40f, 0.20f + next * 0.04f) * 200f);
                     int curSpd = Mathf.RoundToInt(Mathf.Max(0.55f, 1f - cur * 0.08f) * 100f);
                     int nextSpd = Mathf.RoundToInt(Mathf.Max(0.55f, 1f - next * 0.08f) * 100f);
                     return $"Sweet Spot: {curSweet}% -> <color=#4ADE80>{nextSweet}%</color>\nCursor Speed: {curSpd}% -> <color=#4ADE80>{nextSpd}%</color>";
@@ -344,8 +343,8 @@ namespace CookingSystem
                 {
                     float curCook = 4.0f * Mathf.Max(0.42f, 1f - cur * 0.11f);
                     float nextCook = 4.0f * Mathf.Max(0.42f, 1f - next * 0.11f);
-                    float curGrace = 3.0f + cur * 0.55f;
-                    float nextGrace = 3.0f + next * 0.55f;
+                    float curGrace = 5.0f + cur * 0.55f;
+                    float nextGrace = 5.0f + next * 0.55f;
                     return $"Cook Time: {curCook:F1}s -> <color=#4ADE80>{nextCook:F1}s</color>\nFire Grace: {curGrace:F1}s -> <color=#4ADE80>{nextGrace:F1}s</color>";
                 }
                 default:

@@ -77,9 +77,9 @@ namespace CookingSystem
         [SerializeField] private TMP_Text patienceTimerText;
 
         [Header("Order Timing")]
-        [SerializeField] private float defaultPatienceSeconds = 55f;
-        [SerializeField] private float drinkFreezeDuration = 10f;
-        [SerializeField] [Range(0.05f, 0.5f)] private float drinkRestoreFraction = 0.25f;
+        [SerializeField] private float defaultPatienceSeconds = 75f;
+        [SerializeField] private float drinkFreezeDuration = 14f;
+        [SerializeField] [Range(0.05f, 0.5f)] private float drinkRestoreFraction = 0.35f;
 
         private Color defaultCardColor = new Color(0.18f, 0.13f, 0.10f, 0.28f);
         private Color hoverCardColor = new Color(0.28f, 0.22f, 0.16f, 0.55f);
@@ -92,6 +92,7 @@ namespace CookingSystem
         private DrinkType orderedDrink;
         private bool mealDelivered;
         private bool drinkDelivered;
+        private bool receivedDrinkBoost;
 
         private float patienceDuration;
         private float patienceRemaining;
@@ -113,6 +114,7 @@ namespace CookingSystem
             orderedDrink = DrinkType.None;
             mealDelivered = false;
             drinkDelivered = false;
+            receivedDrinkBoost = false;
             patienceFreezeTimer = 0f;
             isShowingTempEmoji = false;
 
@@ -197,6 +199,7 @@ namespace CookingSystem
             orderedDrink = type == OrderType.MealOnly ? DrinkType.None : drink;
             mealDelivered = type == OrderType.DrinkOnly;
             drinkDelivered = type == OrderType.MealOnly;
+            receivedDrinkBoost = false;
             isOccupied = true;
             isLeaving = false;
             patienceFreezeTimer = 0f;
@@ -340,7 +343,15 @@ namespace CookingSystem
             float accuracy = RecipeDatabase.ComputeOrderAccuracy(payload, orderedRecipe);
             float quality = payload.CombinedQuality;
             float patienceRatio = Mathf.Clamp01(patienceRemaining / patienceDuration);
-            float satisfaction = Mathf.Clamp01((accuracy * 0.45f) + (quality * 0.35f) + (patienceRatio * 0.20f));
+            float drinkBonus = receivedDrinkBoost ? 0.12f : 0f;
+            float satisfaction = Mathf.Clamp01((accuracy * 0.55f) + (quality * 0.25f) + (patienceRatio * 0.20f) + drinkBonus);
+
+            // Guarantee fair, rewarding satisfaction whenever the exact dish is served on time
+            if (accuracy >= 0.95f && patienceRemaining > 0f)
+            {
+                float onTimeFloor = receivedDrinkBoost ? 0.88f : 0.78f;
+                satisfaction = Mathf.Max(satisfaction, onTimeFloor);
+            }
 
             int basePts = orderedRecipe != null ? orderedRecipe.basePoints : 150;
             int awardedBase = Mathf.Max(30, Mathf.RoundToInt(basePts * Mathf.Max(0.25f, accuracy)));
@@ -370,7 +381,7 @@ namespace CookingSystem
             else
             {
                 // Meal served first on a combo order; still waiting for drink
-                patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + patienceDuration * 0.15f);
+                patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + patienceDuration * 0.25f);
                 RefreshOrderBubble();
                 RefreshPatienceUI(paused: patienceFreezeTimer > 0f);
                 ShowTemporaryEmoji(reaction, 2.0f);
@@ -386,17 +397,18 @@ namespace CookingSystem
 
             if (orderType == OrderType.MealOnly)
             {
-                // Hospitality drink still pauses/restores customer patience!
+                // Hospitality drink restores & freezes customer patience AND boosts meal satisfaction!
                 SaveData save = SaveSystem.Current;
                 float effectiveRestore = Mathf.Clamp01(drinkRestoreFraction + ProgressionConfig.GetDrinkRestoreBonusFraction(save));
                 float effectiveFreeze = drinkFreezeDuration + ProgressionConfig.GetDrinkFreezeBonusSeconds(save);
 
                 trayItem.NotifyConsumed();
+                receivedDrinkBoost = true;
                 patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * effectiveRestore));
                 patienceFreezeTimer = effectiveFreeze;
                 RefreshPatienceUI(paused: true);
                 GameAudioManager.Instance?.PlaySatisfied();
-                LevelGameManager.Instance?.RegisterDrinkDelivery(35, isComboWithMeal: false, satisfaction: -1f);
+                LevelGameManager.Instance?.RegisterDrinkDelivery(45, isComboWithMeal: false, satisfaction: 0.92f);
                 ShowTemporaryEmoji(SatisfactionReaction.Happy, 1.8f);
                 return;
             }
@@ -410,10 +422,8 @@ namespace CookingSystem
             }
 
             bool exactDrink = trayItem.DrinkKind == orderedDrink;
-            float drinkAccuracy = exactDrink ? 1f : 0.45f;
-            float patienceRatio = Mathf.Clamp01(patienceRemaining / patienceDuration);
-            float satisfaction = Mathf.Clamp01((drinkAccuracy * 0.65f) + (patienceRatio * 0.35f));
-            int drinkPts = exactDrink ? 80 : 35;
+            float drinkAccuracy = exactDrink ? 1f : 0.55f;
+            int drinkPts = exactDrink ? 80 : 40;
 
             SaveData hospSave = SaveSystem.Current;
             float restoreFrac = Mathf.Clamp01(drinkRestoreFraction + ProgressionConfig.GetDrinkRestoreBonusFraction(hospSave));
@@ -421,14 +431,23 @@ namespace CookingSystem
 
             trayItem.NotifyConsumed();
             drinkDelivered = true;
+            if (exactDrink) receivedDrinkBoost = true;
 
+            // Restore patience FIRST so the drink genuinely rescues satisfaction even when served late!
             patienceRemaining = Mathf.Min(patienceDuration, patienceRemaining + (patienceDuration * restoreFrac));
             patienceFreezeTimer = freezeSecs;
             RefreshPatienceUI(paused: true);
 
+            float restoredPatienceRatio = Mathf.Clamp01(patienceRemaining / patienceDuration);
+            float satisfaction = Mathf.Clamp01((drinkAccuracy * 0.72f) + (restoredPatienceRatio * 0.28f));
+            if (exactDrink && patienceRemaining > 0f)
+            {
+                satisfaction = Mathf.Max(satisfaction, 0.85f);
+            }
+
             SatisfactionReaction drinkReaction = exactDrink
-                ? (patienceRatio >= 0.30f ? SatisfactionReaction.Happy : SatisfactionReaction.Neutral)
-                : SatisfactionReaction.Angry;
+                ? SatisfactionReaction.Happy
+                : SatisfactionReaction.Neutral;
 
             if (orderType == OrderType.DrinkOnly)
             {
@@ -450,10 +469,10 @@ namespace CookingSystem
             }
             else
             {
-                // Drink served before meal on MealAndDrink: freeze patience while waiting for meal
+                // Drink served before meal on MealAndDrink: freeze patience & record happy boost!
                 if (exactDrink) GameAudioManager.Instance?.PlaySatisfied();
                 else GameAudioManager.Instance?.PlayNotSatisfied();
-                LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: -1f);
+                LevelGameManager.Instance?.RegisterDrinkDelivery(drinkPts, isComboWithMeal: false, satisfaction: exactDrink ? satisfaction : -1f);
                 RefreshOrderBubble();
                 ShowTemporaryEmoji(drinkReaction, 1.8f);
             }
@@ -470,8 +489,8 @@ namespace CookingSystem
         private static SatisfactionReaction EvaluateMealReaction(float accuracy, float satisfaction)
         {
             if (accuracy < 0.55f) return SatisfactionReaction.Angry;
-            if (satisfaction >= 0.72f) return SatisfactionReaction.Happy;
-            if (satisfaction >= 0.45f) return SatisfactionReaction.Neutral;
+            if (satisfaction >= 0.68f) return SatisfactionReaction.Happy;
+            if (satisfaction >= 0.42f) return SatisfactionReaction.Neutral;
             return SatisfactionReaction.Angry;
         }
 

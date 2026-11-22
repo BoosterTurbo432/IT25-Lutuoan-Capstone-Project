@@ -338,9 +338,9 @@ namespace CookingSystem
             return id switch
             {
                 KitchenUpgradeId.PrepMastery =>
-                    $"{tag}59% Sweet Spot  |  76% Cursor Speed\nEffortless Chop & Mix precision for the entire demo!",
+                    $"{tag}64% Sweet Spot  |  76% Cursor Speed\nEffortless Chop & Mix precision for the entire demo!",
                 KitchenUpgradeId.FastBurner =>
-                    $"{tag}2.3s Cook Time  |  4.8s Fire Grace\nBlazing fast pots & pans with extra burn protection!",
+                    $"{tag}2.3s Cook Time  |  6.8s Fire Grace\nBlazing fast pots & pans with extra burn protection!",
                 _ =>
                     $"{tag}136% Patience  |  +4.5s Freeze  |  +30% Tips\nHappier diners and bigger cash rewards all shift!"
             };
